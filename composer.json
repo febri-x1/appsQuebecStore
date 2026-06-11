@@ -1,0 +1,6 @@
+{
+  "name": "local/quebec-store",
+  "description": "Sistem POS kasir sederhana untuk Quebec Store",
+  "type": "project",
+  "require": {}
+}
