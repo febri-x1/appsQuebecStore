@@ -21,8 +21,11 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ------------------------------------------------------------
 -- Hapus tabel lama jika ada (urutan penting: tabel anak dulu)
 -- ------------------------------------------------------------
+DROP TABLE IF EXISTS `pengeluaran`;
+DROP TABLE IF EXISTS `diskon_promo`;
 DROP TABLE IF EXISTS `transaksi`;
 DROP TABLE IF EXISTS `barang`;
+DROP TABLE IF EXISTS `kategori_barang`;
 DROP TABLE IF EXISTS `suppliers`;
 DROP TABLE IF EXISTS `users`;
 
@@ -80,7 +83,24 @@ CREATE TABLE `suppliers` (
 
 
 -- ============================================================
--- TABEL 3: barang
+-- TABEL 3: kategori_barang
+-- ============================================================
+CREATE TABLE `kategori_barang` (
+    `id`            INT(11)      UNSIGNED NOT NULL AUTO_INCREMENT,
+    `nama_kategori` VARCHAR(100) NOT NULL COMMENT 'Contoh: Kaos, Kemeja, Jaket',
+    `deskripsi`     TEXT         DEFAULT NULL,
+    `created_at`    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_kategori_nama` (`nama_kategori`)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci
+  COMMENT='Master data kategori pakaian';
+
+
+-- ============================================================
+-- TABEL 4: barang
 -- Tabel inti sistem — setiap baris = 1 item fisik unik
 -- (1 SKU = 1 barang, tidak ada duplikat stok)
 -- ============================================================
@@ -89,19 +109,7 @@ CREATE TABLE `barang` (
     `kode_item`   VARCHAR(20)    NOT NULL COMMENT 'Kode unik item, contoh: QS-2025-00001',
     `supplier_id` INT(11)        UNSIGNED NOT NULL COMMENT 'FK ke tabel suppliers',
     `merek`       VARCHAR(100)   NOT NULL COMMENT 'Merek pakaian, contoh: Levis, Zara, H&M',
-    `kategori`    ENUM(
-                    'kaos',
-                    'kemeja',
-                    'celana_panjang',
-                    'celana_pendek',
-                    'jaket',
-                    'hoodie',
-                    'dress',
-                    'rok',
-                    'outer',
-                    'aksesoris',
-                    'lainnya'
-                  ) NOT NULL DEFAULT 'lainnya' COMMENT 'Kategori jenis pakaian',
+    `kategori_id` INT(11)        UNSIGNED NOT NULL COMMENT 'FK ke tabel kategori_barang',
     `ukuran`      VARCHAR(10)    NOT NULL COMMENT 'Ukuran: XS, S, M, L, XL, XXL, atau angka',
     `warna`       VARCHAR(50)    NOT NULL COMMENT 'Warna dominan item',
     `kondisi`     ENUM('A','B','C') NOT NULL COMMENT 'A=Sangat Baik, B=Baik, C=Cukup',
@@ -119,7 +127,7 @@ CREATE TABLE `barang` (
     UNIQUE KEY `uq_barang_kode_item` (`kode_item`),
     KEY `idx_barang_supplier`      (`supplier_id`),
     KEY `idx_barang_status`        (`status`),
-    KEY `idx_barang_kategori`      (`kategori`),
+    KEY `idx_barang_kategori`      (`kategori_id`),
     KEY `idx_barang_kondisi`       (`kondisi`),
     KEY `idx_barang_tanggal_masuk` (`tanggal_masuk`),
     KEY `idx_barang_merek`         (`merek`),
@@ -127,6 +135,12 @@ CREATE TABLE `barang` (
     CONSTRAINT `fk_barang_supplier`
         FOREIGN KEY (`supplier_id`)
         REFERENCES `suppliers` (`id`)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT,
+
+    CONSTRAINT `fk_barang_kategori`
+        FOREIGN KEY (`kategori_id`)
+        REFERENCES `kategori_barang` (`id`)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
 
@@ -137,7 +151,7 @@ CREATE TABLE `barang` (
 
 
 -- ============================================================
--- TABEL 4: transaksi
+-- TABEL 5: transaksi
 -- Mencatat setiap penjualan yang terjadi di toko
 -- Keuntungan = harga_jual - modal (disimpan saat transaksi)
 -- ============================================================
@@ -189,7 +203,7 @@ CREATE OR REPLACE VIEW `v_stok_aktif` AS
         b.id,
         b.kode_item,
         b.merek,
-        b.kategori,
+        kb.nama_kategori AS kategori,
         b.ukuran,
         b.warna,
         b.kondisi,
@@ -201,6 +215,7 @@ CREATE OR REPLACE VIEW `v_stok_aktif` AS
         s.nama_supplier
     FROM  `barang`    b
     JOIN  `suppliers` s ON s.id = b.supplier_id
+    JOIN  `kategori_barang` kb ON kb.id = b.kategori_id
     WHERE b.status = 'di_rak';
 
 
@@ -228,7 +243,7 @@ CREATE OR REPLACE VIEW `v_laporan_transaksi` AS
         t.created_at,
         b.kode_item,
         b.merek,
-        b.kategori,
+        kb.nama_kategori AS kategori,
         b.ukuran,
         b.kondisi,
         t.harga_jual,
@@ -241,6 +256,7 @@ CREATE OR REPLACE VIEW `v_laporan_transaksi` AS
         s.nama_supplier
     FROM  `transaksi` t
     JOIN  `barang`    b ON b.id = t.barang_id
+    JOIN  `kategori_barang` kb ON kb.id = b.kategori_id
     JOIN  `users`     u ON u.id = t.kasir_id
     JOIN  `suppliers` s ON s.id = b.supplier_id;
 
@@ -261,6 +277,59 @@ CREATE OR REPLACE VIEW `v_ringkasan_harian` AS
     ORDER BY tanggal_jual DESC;
 
 
+-- ============================================================
+-- TABEL 6: pengeluaran
+-- Mencatat biaya operasional toko
+-- ============================================================
+CREATE TABLE `pengeluaran` (
+    `id`                   INT(11)       UNSIGNED NOT NULL AUTO_INCREMENT,
+    `tanggal`              DATE          NOT NULL COMMENT 'Tanggal pengeluaran',
+    `kategori_pengeluaran` ENUM('listrik', 'gaji', 'sewa', 'operasional', 'lainnya') NOT NULL DEFAULT 'operasional',
+    `nominal`              DECIMAL(12,2) NOT NULL COMMENT 'Jumlah pengeluaran (Rp)',
+    `keterangan`           TEXT          DEFAULT NULL COMMENT 'Deskripsi pengeluaran',
+    `kasir_id`             INT(11)       UNSIGNED NOT NULL COMMENT 'User yang mencatat',
+    `created_at`           TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`id`),
+    KEY `idx_pengeluaran_tanggal` (`tanggal`),
+    KEY `idx_pengeluaran_kategori` (`kategori_pengeluaran`),
+    KEY `idx_pengeluaran_kasir` (`kasir_id`),
+
+    CONSTRAINT `fk_pengeluaran_kasir`
+        FOREIGN KEY (`kasir_id`)
+        REFERENCES `users` (`id`)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci
+  COMMENT='Data pengeluaran operasional toko';
+
+
+-- ============================================================
+-- TABEL 7: diskon_promo
+-- Mengatur diskon atau potongan harga untuk barang/transaksi
+-- ============================================================
+CREATE TABLE `diskon_promo` (
+    `id`              INT(11)       UNSIGNED NOT NULL AUTO_INCREMENT,
+    `nama_promo`      VARCHAR(100)  NOT NULL COMMENT 'Nama promo, misal: Cuci Gudang',
+    `tipe_potongan`   ENUM('persen', 'nominal') NOT NULL DEFAULT 'nominal' COMMENT 'Jenis diskon',
+    `nilai_potongan`  DECIMAL(10,2) NOT NULL COMMENT 'Nilai potongan',
+    `tanggal_mulai`   DATE          NOT NULL COMMENT 'Berlaku dari tanggal',
+    `tanggal_selesai` DATE          NOT NULL COMMENT 'Berlaku sampai tanggal',
+    `status`          ENUM('aktif', 'nonaktif') NOT NULL DEFAULT 'aktif',
+    `created_at`      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`      TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`id`),
+    KEY `idx_promo_status` (`status`),
+    KEY `idx_promo_tanggal` (`tanggal_mulai`, `tanggal_selesai`)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_unicode_ci
+  COMMENT='Manajemen diskon dan promo toko';
+
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================
@@ -269,6 +338,8 @@ SET FOREIGN_KEY_CHECKS = 1;
 --   2. suppliers    — pemasok bal pakaian
 --   3. barang       — item pakaian (1 baris = 1 fisik unik)
 --   4. transaksi    — riwayat penjualan
+--   5. pengeluaran  — operasional toko
+--   6. diskon_promo — diskon dan promo
 --
 -- View yang dibuat:
 --   1. v_stok_aktif          — barang masih di rak

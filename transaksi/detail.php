@@ -3,7 +3,8 @@ require_once '../config/database.php';
 require_once '../includes/auth_check.php';
 require_once '../includes/functions.php';
 
-if (current_user()['role'] !== 'pemilik') {
+$user = current_user();
+if ($user['role'] !== 'pemilik' && $user['role'] !== 'kasir') {
     flash('error', 'Akses ditolak.');
     redirect('dashboard.php');
 }
@@ -33,7 +34,11 @@ include '../includes/header.php';
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Detail Transaksi</h2>
         <div>
-            <a href="index.php" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Kembali ke Daftar Transaksi</a>
+            <?php if ($user['role'] === 'kasir'): ?>
+                <a href="riwayat_kasir.php" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Kembali ke Riwayat</a>
+            <?php else: ?>
+                <a href="index.php" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Kembali ke Daftar Transaksi</a>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -60,10 +65,10 @@ include '../includes/header.php';
                         </tr>
                         <tr>
                             <th>Metode Bayar</th>
-                            <td>: 
-                                <?php if($t['metode_bayar'] == 'tunai'): ?>
+                            <td>:
+                                <?php if ($t['metode_bayar'] == 'tunai'): ?>
                                     <span class="badge bg-success">Tunai</span>
-                                <?php elseif($t['metode_bayar'] == 'qris'): ?>
+                                <?php elseif ($t['metode_bayar'] == 'qris'): ?>
                                     <span class="badge bg-primary">QRIS</span>
                                 <?php else: ?>
                                     <span class="badge bg-info text-dark">Transfer</span>
@@ -109,10 +114,10 @@ include '../includes/header.php';
                         </tr>
                         <tr>
                             <th>Kondisi</th>
-                            <td>: 
-                                <?php if($t['kondisi'] == 'A'): ?>
+                            <td>:
+                                <?php if ($t['kondisi'] == 'A'): ?>
                                     <span class="badge bg-success">A</span>
-                                <?php elseif($t['kondisi'] == 'B'): ?>
+                                <?php elseif ($t['kondisi'] == 'B'): ?>
                                     <span class="badge bg-warning text-dark">B</span>
                                 <?php else: ?>
                                     <span class="badge bg-danger">C</span>
@@ -157,49 +162,49 @@ include '../includes/header.php';
     </div>
 
     <!-- Aksi Hapus -->
-    <?php if ($isToday): ?>
-    <div class="text-center mt-5">
-        <button class="btn btn-outline-danger" onclick="confirmDelete()"><i class="bi bi-trash"></i> Hapus Transaksi</button>
-        <p class="text-muted small mt-2">Tombol hapus hanya tersedia untuk transaksi yang dibuat hari ini.</p>
-    </div>
-
-    <!-- Modal Hapus -->
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Konfirmasi Hapus Transaksi</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body text-start">
-            <p>Anda yakin ingin menghapus transaksi ini?</p>
-            <div class="alert alert-warning mb-0">
-                <strong>Peringatan!</strong> Menghapus transaksi akan mengembalikan status barang menjadi <strong>Di Rak</strong>. Aksi ini tidak dapat dibatalkan.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <form method="POST" action="hapus.php">
-                <?php
-                if (empty($_SESSION['csrf_token'])) {
-                    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-                }
-                ?>
-                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                <input type="hidden" name="id" value="<?= $t['transaksi_id'] ?>">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Ya, Hapus Transaksi</button>
-            </form>
-          </div>
+    <?php if ($isToday && $user['role'] === 'pemilik'): ?>
+        <div class="text-center mt-5">
+            <button class="btn btn-outline-danger" onclick="confirmDelete()"><i class="bi bi-trash"></i> Hapus Transaksi</button>
+            <p class="text-muted small mt-2">Tombol hapus hanya tersedia untuk transaksi yang dibuat hari ini.</p>
         </div>
-      </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-    function confirmDelete() {
-        var myModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        myModal.show();
-    }
-    </script>
+
+        <!-- Modal Hapus -->
+        <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Konfirmasi Hapus Transaksi</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-start">
+                        <p>Anda yakin ingin menghapus transaksi ini?</p>
+                        <div class="alert alert-warning mb-0">
+                            <strong>Peringatan!</strong> Menghapus transaksi akan mengembalikan status barang menjadi <strong>Di Rak</strong>. Aksi ini tidak dapat dibatalkan.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <form method="POST" action="hapus.php">
+                            <?php
+                            if (empty($_SESSION['csrf_token'])) {
+                                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+                            }
+                            ?>
+                            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                            <input type="hidden" name="id" value="<?= $t['transaksi_id'] ?>">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Ya, Hapus Transaksi</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            function confirmDelete() {
+                var myModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                myModal.show();
+            }
+        </script>
     <?php endif; ?>
 
 </div>

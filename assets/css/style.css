@@ -35,23 +35,19 @@ a {
     background: #101828;
     color: #fff;
     padding: 24px;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    overflow-y: auto;
 }
 
 .brand {
-    display: flex;
-    gap: 12px;
-    align-items: center;
     margin-bottom: 28px;
 }
 
 .brand-mark {
     display: grid;
-    width: 40px;
-    height: 40px;
     place-items: center;
-    border-radius: 8px;
-    background: var(--primary);
-    font-weight: 700;
 }
 
 .brand small,
@@ -60,18 +56,50 @@ a {
 }
 
 .sidebar nav {
-    display: grid;
-    gap: 8px;
+    /* Flex handles this now */
 }
 
-.sidebar a {
+.sidebar .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     color: #e5e7eb;
-    padding: 10px 12px;
+    padding: 12px 16px;
     border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
 }
 
-.sidebar a:hover {
-    background: rgba(255, 255, 255, 0.09);
+.sidebar .nav-link i {
+    font-size: 1.2rem;
+    opacity: 0.8;
+    transition: all 0.2s;
+}
+
+.sidebar .nav-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.sidebar .nav-link:hover i {
+    opacity: 1;
+}
+
+.sidebar .nav-link.active {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar .nav-link.active i {
+    opacity: 1;
+}
+
+.sidebar .nav-link.text-danger:hover {
+    background: rgba(220, 53, 69, 0.15);
+    color: #ff6b6b !important;
 }
 
 .main-content {

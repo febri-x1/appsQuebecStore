@@ -10,6 +10,10 @@
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DELETE FROM `pengeluaran`;
+ALTER TABLE `pengeluaran` AUTO_INCREMENT = 1;
+DELETE FROM `diskon_promo`;
+ALTER TABLE `diskon_promo` AUTO_INCREMENT = 1;
 DELETE FROM `transaksi`;
 ALTER TABLE `transaksi` AUTO_INCREMENT = 1;
 DELETE FROM `barang`;
@@ -58,6 +62,20 @@ INSERT INTO `transaksi` (`id`, `barang_id`, `kasir_id`, `harga_jual`, `modal`, `
 (2, 4, 2, 200000.00, 41666.67, 'qris', '-', DATE_SUB(CURDATE(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 10 DAY)),
 -- Transaksi hari ini
 (3, 6, 1, 85000.00, 41666.67, 'transfer', '-', CURDATE(), NOW());
+
+-- ------------------------------------------------------------
+-- 5. Data Pengeluaran
+-- ------------------------------------------------------------
+INSERT INTO `pengeluaran` (`id`, `tanggal`, `kategori_pengeluaran`, `nominal`, `keterangan`, `kasir_id`) VALUES
+(1, DATE_SUB(CURDATE(), INTERVAL 5 DAY), 'listrik', 250000.00, 'Bayar listrik bulan ini', 1),
+(2, CURDATE(), 'operasional', 50000.00, 'Beli kantong plastik dan lakban', 2);
+
+-- ------------------------------------------------------------
+-- 6. Data Diskon Promo
+-- ------------------------------------------------------------
+INSERT INTO `diskon_promo` (`id`, `nama_promo`, `tipe_potongan`, `nilai_potongan`, `tanggal_mulai`, `tanggal_selesai`, `status`) VALUES
+(1, 'Cuci Gudang Akhir Bulan', 'persen', 20.00, DATE_SUB(CURDATE(), INTERVAL 2 DAY), DATE_ADD(CURDATE(), INTERVAL 5 DAY), 'aktif'),
+(2, 'Potongan Langsung 10k', 'nominal', 10000.00, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 30 DAY), 'aktif');
 
 SET FOREIGN_KEY_CHECKS = 1;
 

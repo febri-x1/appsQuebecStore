@@ -28,6 +28,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 $suppliers = $pdo->query("SELECT id, nama_supplier, modal_per_item FROM suppliers ORDER BY nama_supplier ASC")->fetchAll();
+$kategori_list = $pdo->query("SELECT id, nama_kategori FROM kategori_barang ORDER BY nama_kategori ASC")->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
@@ -36,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $supplier_id = (int)$_POST['supplier_id'];
     $merek = sanitizeInput($_POST['merek']);
-    $kategori = sanitizeInput($_POST['kategori']);
+    $kategori_id = (int)$_POST['kategori_id'];
     $ukuran = sanitizeInput($_POST['ukuran'] === 'Lainnya' ? $_POST['ukuran_manual'] : $_POST['ukuran']);
     $warna = sanitizeInput($_POST['warna']);
     $kondisi = sanitizeInput($_POST['kondisi']);
@@ -45,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $harga_jual = (float)$_POST['harga_jual'];
     $tanggal_masuk = $_POST['tanggal_masuk'] ?: date('Y-m-d');
     $status = sanitizeInput($_POST['status']);
-    
+
     $fotoPath = $item['foto'];
     if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
         $allowed = ['jpg', 'jpeg', 'png', 'webp'];
@@ -66,11 +67,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $stmt = $pdo->prepare('UPDATE barang SET supplier_id=?, merek=?, kategori=?, ukuran=?, warna=?, kondisi=?, deskripsi=?, foto=?, modal=?, harga_jual=?, status=?, tanggal_masuk=? WHERE id=?');
+    $stmt = $pdo->prepare('UPDATE barang SET supplier_id=?, merek=?, kategori_id=?, ukuran=?, warna=?, kondisi=?, deskripsi=?, foto=?, modal=?, harga_jual=?, status=?, tanggal_masuk=? WHERE id=?');
     $stmt->execute([
-        $supplier_id, $merek, $kategori, $ukuran, $warna, $kondisi, $deskripsi, $fotoPath, $modal, $harga_jual, $status, $tanggal_masuk, $id
+        $supplier_id,
+        $merek,
+        $kategori_id,
+        $ukuran,
+        $warna,
+        $kondisi,
+        $deskripsi,
+        $fotoPath,
+        $modal,
+        $harga_jual,
+        $status,
+        $tanggal_masuk,
+        $id
     ]);
-    
+
     flash('success', 'Data barang berhasil diperbarui.');
     redirect("barang/detail.php?id=$id");
 }
@@ -78,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $pageTitle = 'Edit Barang';
 include '../includes/header.php';
 $isDisabled = $item['status'] === 'terjual' ? 'disabled' : '';
-$stdSizes = ['XS','S','M','L','XL','XXL'];
+$stdSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 $isLainnya = !in_array($item['ukuran'], $stdSizes);
 ?>
 
@@ -90,14 +103,14 @@ $isLainnya = !in_array($item['ukuran'], $stdSizes);
         </div>
         <div class="card-body">
             <?php if ($item['status'] === 'terjual'): ?>
-            <div class="alert alert-warning">
-                <strong>Peringatan:</strong> Barang ini sudah berstatus <b>Terjual</b>. Semua atribut telah dikunci dan tidak dapat diubah untuk menjaga integritas riwayat transaksi.
-            </div>
+                <div class="alert alert-warning">
+                    <strong>Peringatan:</strong> Barang ini sudah berstatus <b>Terjual</b>. Semua atribut telah dikunci dan tidak dapat diubah untuk menjaga integritas riwayat transaksi.
+                </div>
             <?php endif; ?>
 
             <form method="POST" enctype="multipart/form-data" id="formEdit">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                
+
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label class="form-label">Kode Item</label>
@@ -107,10 +120,10 @@ $isLainnya = !in_array($item['ukuran'], $stdSizes);
                         <label class="form-label">Supplier</label>
                         <select name="supplier_id" id="supplier_id" class="form-select" required <?= $isDisabled ?>>
                             <option value="">-- Pilih Supplier --</option>
-                            <?php foreach($suppliers as $sup): ?>
-                            <option value="<?= $sup['id'] ?>" data-modal="<?= $sup['modal_per_item'] ?>" <?= $item['supplier_id'] == $sup['id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($sup['nama_supplier']) ?> (Modal: <?= formatRupiah($sup['modal_per_item']) ?>)
-                            </option>
+                            <?php foreach ($suppliers as $sup): ?>
+                                <option value="<?= $sup['id'] ?>" data-modal="<?= $sup['modal_per_item'] ?>" <?= $item['supplier_id'] == $sup['id'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($sup['nama_supplier']) ?> (Modal: <?= formatRupiah($sup['modal_per_item']) ?>)
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -123,11 +136,9 @@ $isLainnya = !in_array($item['ukuran'], $stdSizes);
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Kategori</label>
-                        <select name="kategori" class="form-select" required <?= $isDisabled ?>>
-                            <?php 
-                            $kategori_options = ['kaos', 'kemeja', 'celana_panjang', 'celana_pendek', 'jaket', 'hoodie', 'dress', 'rok', 'outer', 'aksesoris', 'lainnya'];
-                            foreach ($kategori_options as $kat): ?>
-                                <option value="<?= $kat ?>" <?= $item['kategori'] == $kat ? 'selected' : '' ?>><?= ucfirst(str_replace('_', ' ', $kat)) ?></option>
+                        <select name="kategori_id" class="form-select" required <?= $isDisabled ?>>
+                            <?php foreach ($kategori_list as $kat): ?>
+                                <option value="<?= $kat['id'] ?>" <?= $item['kategori_id'] == $kat['id'] ? 'selected' : '' ?>><?= htmlspecialchars($kat['nama_kategori']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -141,7 +152,7 @@ $isLainnya = !in_array($item['ukuran'], $stdSizes);
                     <div class="col-md-4">
                         <label class="form-label">Ukuran</label>
                         <select name="ukuran" id="ukuran" class="form-select" required <?= $isDisabled ?> onchange="toggleUkuran()">
-                            <?php foreach($stdSizes as $s): ?>
+                            <?php foreach ($stdSizes as $s): ?>
                                 <option value="<?= $s ?>" <?= $item['ukuran'] === $s ? 'selected' : '' ?>><?= $s ?></option>
                             <?php endforeach; ?>
                             <option value="Lainnya" <?= $isLainnya ? 'selected' : '' ?>>Lainnya...</option>
@@ -216,7 +227,7 @@ $isLainnya = !in_array($item['ukuran'], $stdSizes);
                 <div class="d-flex justify-content-end gap-2">
                     <a href="index.php" class="btn btn-secondary">Batal</a>
                     <?php if ($item['status'] !== 'terjual'): ?>
-                    <button type="submit" class="btn btn-primary" id="btnSubmit">Simpan Perubahan</button>
+                        <button type="submit" class="btn btn-primary" id="btnSubmit">Simpan Perubahan</button>
                     <?php endif; ?>
                 </div>
             </form>
@@ -226,51 +237,55 @@ $isLainnya = !in_array($item['ukuran'], $stdSizes);
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// Kalkulasi untung
-function hitungUntung() {
-    var modal = parseFloat(document.getElementById('modal').value) || 0;
-    var jual = parseFloat(document.getElementById('harga_jual').value) || 0;
-    var untung = jual - modal;
-    var format = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(untung);
-    document.getElementById('kalkulasiUntung').innerText = "Keuntungan: " + format;
-}
-document.getElementById('modal').addEventListener('input', hitungUntung);
-document.getElementById('harga_jual').addEventListener('input', hitungUntung);
-hitungUntung(); // init
-
-// Toggle Ukuran
-function toggleUkuran() {
-    var sel = document.getElementById('ukuran');
-    var man = document.getElementById('ukuran_manual');
-    if(sel.value === 'Lainnya') {
-        man.style.display = 'block';
-        man.required = true;
-    } else {
-        man.style.display = 'none';
-        man.required = false;
+    // Kalkulasi untung
+    function hitungUntung() {
+        var modal = parseFloat(document.getElementById('modal').value) || 0;
+        var jual = parseFloat(document.getElementById('harga_jual').value) || 0;
+        var untung = jual - modal;
+        var format = new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            maximumFractionDigits: 0
+        }).format(untung);
+        document.getElementById('kalkulasiUntung').innerText = "Keuntungan: " + format;
     }
-}
+    document.getElementById('modal').addEventListener('input', hitungUntung);
+    document.getElementById('harga_jual').addEventListener('input', hitungUntung);
+    hitungUntung(); // init
 
-// Preview Foto
-document.getElementById('foto').addEventListener('change', function(e) {
-    if (this.files && this.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('previewFoto').style.display = 'block';
-            document.getElementById('previewFoto').src = e.target.result;
+    // Toggle Ukuran
+    function toggleUkuran() {
+        var sel = document.getElementById('ukuran');
+        var man = document.getElementById('ukuran_manual');
+        if (sel.value === 'Lainnya') {
+            man.style.display = 'block';
+            man.required = true;
+        } else {
+            man.style.display = 'none';
+            man.required = false;
         }
-        reader.readAsDataURL(this.files[0]);
     }
-});
 
-// Loading state
-var btn = document.getElementById('btnSubmit');
-if(btn) {
-    document.getElementById('formEdit').addEventListener('submit', function() {
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...';
-        btn.disabled = true;
+    // Preview Foto
+    document.getElementById('foto').addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('previewFoto').style.display = 'block';
+                document.getElementById('previewFoto').src = e.target.result;
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
     });
-}
+
+    // Loading state
+    var btn = document.getElementById('btnSubmit');
+    if (btn) {
+        document.getElementById('formEdit').addEventListener('submit', function() {
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...';
+            btn.disabled = true;
+        });
+    }
 </script>
 
 <?php include '../includes/footer.php'; ?>

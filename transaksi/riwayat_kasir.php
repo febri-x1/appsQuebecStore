@@ -116,6 +116,7 @@ include '../includes/header.php';
                             <th>Metode Bayar</th>
                             <th class="text-end">Harga Jual</th>
                             <th class="text-end">Keuntungan</th>
+                            <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -147,6 +148,14 @@ include '../includes/header.php';
                                 <td class="text-end fw-bold <?= $t['keuntungan'] > 0 ? 'text-success' : ($t['keuntungan'] < 0 ? 'text-danger' : '') ?>">
                                     <?= formatRupiah($t['keuntungan']) ?>
                                 </td>
+                                <td class="text-center">
+                                    <a href="detail.php?id=<?= $t['transaksi_id'] ?>" class="btn btn-sm btn-outline-info" title="Lihat Detail">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-secondary" onclick="cetakStruk(<?= $t['transaksi_id'] ?>)" title="Cetak Ulang Struk">
+                                        <i class="bi bi-printer"></i>
+                                    </button>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
@@ -165,6 +174,7 @@ include '../includes/header.php';
                             <td colspan="7" class="text-end">TOTAL HARI INI</td>
                             <td class="text-end"><?= formatRupiah($total_pendapatan) ?></td>
                             <td class="text-end text-success"><?= formatRupiah($total_keuntungan) ?></td>
+                            <td></td>
                         </tr>
                     </tfoot>
                 </table>
@@ -176,7 +186,7 @@ include '../includes/header.php';
                 <nav>
                     <ul class="pagination mb-0">
                         <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?page=<?= $page-1 ?>&tanggal=<?= urlencode($tanggal) ?>">« Prev</a>
+                            <a class="page-link" href="?page=<?= $page-1 ?>&tanggal=<?= urlencode($tanggal) ?>">ï¿½ Prev</a>
                         </li>
                         <?php for($i=1; $i<=$totalPages; $i++): ?>
                         <li class="page-item <?= $page == $i ? 'active' : '' ?>">
@@ -184,7 +194,7 @@ include '../includes/header.php';
                         </li>
                         <?php endfor; ?>
                         <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?page=<?= $page+1 ?>&tanggal=<?= urlencode($tanggal) ?>">Next »</a>
+                            <a class="page-link" href="?page=<?= $page+1 ?>&tanggal=<?= urlencode($tanggal) ?>">Next ï¿½</a>
                         </li>
                     </ul>
                 </nav>
@@ -195,4 +205,13 @@ include '../includes/header.php';
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function cetakStruk(id) {
+    const width = 400;
+    const height = 600;
+    const left = (screen.width - width) / 2;
+    const top = (screen.height - height) / 2;
+    window.open(`cetak_struk.php?id=${id}`, 'CetakStruk', `width=${width},height=${height},top=${top},left=${left}`);
+}
+</script>
 <?php include '../includes/footer.php'; ?>

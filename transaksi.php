@@ -16,7 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($kode_item) {
         // Cari barang berdasarkan kode_item
-        $stmt = $pdo->prepare("SELECT id, harga_jual, modal, merek, kategori, status FROM barang WHERE kode_item = ?");
+        $stmt = $pdo->prepare("
+            SELECT b.id, b.harga_jual, b.modal, b.merek, kb.nama_kategori AS kategori, b.status 
+            FROM barang b 
+            JOIN kategori_barang kb ON b.kategori_id = kb.id
+            WHERE b.kode_item = ?
+        ");
         $stmt->execute([$kode_item]);
         $barang = $stmt->fetch();
 
@@ -92,8 +97,8 @@ include __DIR__ . '/includes/header.php';
                 <label for="metode_bayar" style="display: block; margin-bottom: 0.5rem; font-weight: bold;">Metode Pembayaran</label>
                 <select id="metode_bayar" name="metode_bayar" required style="width: 100%; padding: 0.6rem; font-size: 1.1rem; border: 1px solid #ccc; border-radius: 4px;">
                     <option value="tunai">Tunai</option>
-                    <option value="qris">QRIS</option>
-                    <option value="transfer">Transfer Bank</option>
+                    <option value="qris" disabled>QRIS (Disabled)</option>
+                    <option value="transfer" disabled>Transfer Bank (Disabled)</option>
                 </select>
             </div>
 

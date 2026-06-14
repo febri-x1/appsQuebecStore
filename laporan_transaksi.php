@@ -30,6 +30,7 @@ include __DIR__ . '/includes/header.php';
                         <th>Keuntungan</th>
                         <th>Kasir</th>
                         <th>Metode Bayar</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -47,11 +48,14 @@ include __DIR__ . '/includes/header.php';
                                 </td>
                                 <td><?= clean($row['nama_kasir']); ?></td>
                                 <td><?= clean(strtoupper($row['metode_bayar'])); ?></td>
+                                <td class="actions">
+                                    <a href="transaksi/detail.php?id=<?= $row['transaksi_id'] ?>" class="button secondary" style="padding: 4px 8px; font-size: 0.85rem;">Detail</a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="9" style="text-align: center;">Belum ada data transaksi.</td>
+                            <td colspan="10" style="text-align: center;">Belum ada data transaksi.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>

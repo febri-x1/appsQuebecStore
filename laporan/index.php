@@ -30,6 +30,7 @@ include __DIR__ . '/../includes/header.php';
                 <th>Kasir</th>
                 <th>Harga Jual</th>
                 <th>Keuntungan</th>
+                <th>Aksi</th>
             </tr>
         </thead>
         <tbody>
@@ -41,6 +42,9 @@ include __DIR__ . '/../includes/header.php';
                     <td><?= clean($trx['nama_kasir'] ?? '-'); ?></td>
                     <td><?= rupiah($trx['harga_jual']); ?></td>
                     <td style="color: #28a745;">+ <?= rupiah($trx['keuntungan']); ?></td>
+                    <td class="actions">
+                        <a href="../transaksi/detail.php?id=<?= $trx['transaksi_id'] ?>" class="button secondary" style="padding: 4px 8px; font-size: 0.85rem;">Detail</a>
+                    </td>
                 </tr>
             <?php endforeach; ?>
         </tbody>

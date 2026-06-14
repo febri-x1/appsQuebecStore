@@ -10,8 +10,9 @@ if (current_user()['role'] !== 'pemilik') {
 
 $id = (int)($_GET['id'] ?? 0);
 
-$stmt = $pdo->prepare("SELECT b.*, s.nama_supplier, s.harga_per_bal, t.tanggal_jual, t.harga_jual as harga_terjual, u.nama as nama_kasir
+$stmt = $pdo->prepare("SELECT b.*, kb.nama_kategori AS kategori, s.nama_supplier, s.harga_per_bal, t.tanggal_jual, t.harga_jual as harga_terjual, u.nama as nama_kasir
     FROM barang b 
+    LEFT JOIN kategori_barang kb ON b.kategori_id = kb.id
     LEFT JOIN suppliers s ON b.supplier_id = s.id 
     LEFT JOIN transaksi t ON b.id = t.barang_id
     LEFT JOIN users u ON t.kasir_id = u.id
@@ -39,7 +40,7 @@ include '../includes/header.php';
             <a href="index.php" class="btn btn-secondary">← Kembali ke Daftar</a>
             <a href="edit.php?id=<?= $item['id'] ?>" class="btn btn-warning">Edit</a>
             <?php if ($item['status'] !== 'terjual'): ?>
-            <button class="btn btn-danger" onclick="confirmDelete(<?= $item['id'] ?>)">Hapus</button>
+                <button class="btn btn-danger" onclick="confirmDelete(<?= $item['id'] ?>)">Hapus</button>
             <?php endif; ?>
         </div>
     </div>
@@ -55,7 +56,7 @@ include '../includes/header.php';
                             <span>Tidak ada foto</span>
                         </div>
                     <?php endif; ?>
-                    
+
                     <h5 class="mt-3"><?= htmlspecialchars($item['merek']) ?></h5>
                     <div class="mt-2">
                         <?php if ($item['status'] === 'di_rak'): ?>
@@ -83,27 +84,48 @@ include '../includes/header.php';
                 <div class="card-body">
                     <table class="table table-bordered">
                         <tbody>
-                            <tr><th width="30%">Kategori</th><td><?= ucfirst(str_replace('_', ' ', $item['kategori'])) ?></td></tr>
-                            <tr><th>Ukuran</th><td><?= htmlspecialchars($item['ukuran']) ?></td></tr>
-                            <tr><th>Warna</th><td><?= htmlspecialchars($item['warna']) ?></td></tr>
+                            <tr>
+                                <th width="30%">Kategori</th>
+                                <td><?= ucfirst(str_replace('_', ' ', $item['kategori'])) ?></td>
+                            </tr>
+                            <tr>
+                                <th>Ukuran</th>
+                                <td><?= htmlspecialchars($item['ukuran']) ?></td>
+                            </tr>
+                            <tr>
+                                <th>Warna</th>
+                                <td><?= htmlspecialchars($item['warna']) ?></td>
+                            </tr>
                             <tr>
                                 <th>Kondisi</th>
                                 <td>
-                                    <?php if($item['kondisi'] == 'A') echo '<span class="badge bg-success">A (Sangat Baik)</span>';
-                                    elseif($item['kondisi'] == 'B') echo '<span class="badge bg-warning text-dark">B (Baik)</span>';
+                                    <?php if ($item['kondisi'] == 'A') echo '<span class="badge bg-success">A (Sangat Baik)</span>';
+                                    elseif ($item['kondisi'] == 'B') echo '<span class="badge bg-warning text-dark">B (Baik)</span>';
                                     else echo '<span class="badge bg-danger">C (Cukup)</span>'; ?>
                                 </td>
                             </tr>
-                            <tr><th>Deskripsi</th><td><?= nl2br(htmlspecialchars($item['deskripsi'] ?: '-')) ?></td></tr>
-                            <tr><th>Tanggal Masuk</th><td><?= date('d M Y', strtotime($item['tanggal_masuk'])) ?></td></tr>
+                            <tr>
+                                <th>Deskripsi</th>
+                                <td><?= nl2br(htmlspecialchars($item['deskripsi'] ?: '-')) ?></td>
+                            </tr>
+                            <tr>
+                                <th>Tanggal Masuk</th>
+                                <td><?= date('d M Y', strtotime($item['tanggal_masuk'])) ?></td>
+                            </tr>
                         </tbody>
                     </table>
 
                     <h5 class="mt-4">Kalkulasi Keuangan</h5>
                     <table class="table table-bordered">
                         <tbody>
-                            <tr><th width="30%">Modal</th><td><?= formatRupiah($item['modal']) ?></td></tr>
-                            <tr><th>Harga Jual (Target)</th><td><?= formatRupiah($item['harga_jual']) ?></td></tr>
+                            <tr>
+                                <th width="30%">Modal</th>
+                                <td><?= formatRupiah($item['modal']) ?></td>
+                            </tr>
+                            <tr>
+                                <th>Harga Jual (Target)</th>
+                                <td><?= formatRupiah($item['harga_jual']) ?></td>
+                            </tr>
                             <tr class="table-success">
                                 <th><?= $item['status'] === 'terjual' ? 'Keuntungan Aktual' : 'Potensi Keuntungan' ?></th>
                                 <td><strong><?= formatRupiah($untung) ?></strong></td>
@@ -114,20 +136,35 @@ include '../includes/header.php';
                     <h5 class="mt-4">Informasi Supplier</h5>
                     <table class="table table-bordered">
                         <tbody>
-                            <tr><th width="30%">Nama Supplier</th><td><?= htmlspecialchars($item['nama_supplier']) ?></td></tr>
-                            <tr><th>Harga per Bal</th><td><?= formatRupiah($item['harga_per_bal']) ?></td></tr>
+                            <tr>
+                                <th width="30%">Nama Supplier</th>
+                                <td><?= htmlspecialchars($item['nama_supplier']) ?></td>
+                            </tr>
+                            <tr>
+                                <th>Harga per Bal</th>
+                                <td><?= formatRupiah($item['harga_per_bal']) ?></td>
+                            </tr>
                         </tbody>
                     </table>
 
                     <?php if ($item['status'] === 'terjual' && $item['tanggal_jual']): ?>
-                    <h5 class="mt-4 text-primary">Informasi Transaksi</h5>
-                    <table class="table table-bordered border-primary">
-                        <tbody>
-                            <tr><th width="30%">Tanggal Jual</th><td><?= date('d M Y', strtotime($item['tanggal_jual'])) ?></td></tr>
-                            <tr><th>Harga Terjual</th><td><?= formatRupiah($item['harga_terjual']) ?></td></tr>
-                            <tr><th>Kasir Pelayan</th><td><?= htmlspecialchars($item['nama_kasir']) ?></td></tr>
-                        </tbody>
-                    </table>
+                        <h5 class="mt-4 text-primary">Informasi Transaksi</h5>
+                        <table class="table table-bordered border-primary">
+                            <tbody>
+                                <tr>
+                                    <th width="30%">Tanggal Jual</th>
+                                    <td><?= date('d M Y', strtotime($item['tanggal_jual'])) ?></td>
+                                </tr>
+                                <tr>
+                                    <th>Harga Terjual</th>
+                                    <td><?= formatRupiah($item['harga_terjual']) ?></td>
+                                </tr>
+                                <tr>
+                                    <th>Kasir Pelayan</th>
+                                    <td><?= htmlspecialchars($item['nama_kasir']) ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
                     <?php endif; ?>
                 </div>
             </div>
@@ -137,31 +174,31 @@ include '../includes/header.php';
 
 <!-- Modal Hapus -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Konfirmasi Hapus</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        Yakin ingin menghapus barang ini? Data tidak dapat dikembalikan.
-      </div>
-      <div class="modal-footer">
-        <form method="POST" action="hapus.php">
-            <input type="hidden" name="id" id="deleteId">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-            <button type="submit" class="btn btn-danger">Ya, Hapus</button>
-        </form>
-      </div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Konfirmasi Hapus</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Yakin ingin menghapus barang ini? Data tidak dapat dikembalikan.
+            </div>
+            <div class="modal-footer">
+                <form method="POST" action="hapus.php">
+                    <input type="hidden" name="id" id="deleteId">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-danger">Ya, Hapus</button>
+                </form>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-function confirmDelete(id) {
-    document.getElementById('deleteId').value = id;
-    var myModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    myModal.show();
-}
+    function confirmDelete(id) {
+        document.getElementById('deleteId').value = id;
+        var myModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        myModal.show();
+    }
 </script>
 <?php include '../includes/footer.php'; ?>

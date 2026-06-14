@@ -105,12 +105,6 @@ $pageTitle = $pageTitle ?? APP_NAME;
                 <p class="muted">Sistem POS Kasir</p>
                 <h1><?= clean($pageTitle); ?></h1>
             </div>
-            <?php if (current_user()): ?>
-                <div class="user-chip">
-                    <span><?= clean(current_user()['nama']); ?></span>
-                    <a href="<?= BASE_URL; ?>/logout.php">Keluar</a>
-                </div>
-            <?php endif; ?>
         </header>
 
         <?php if ($success = flash('success')): ?>

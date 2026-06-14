@@ -15,6 +15,7 @@ if (empty($_SESSION['csrf_token'])) {
 
 // Ambil supplier
 $suppliers = $pdo->query("SELECT id, nama_supplier, modal_per_item FROM suppliers ORDER BY nama_supplier ASC")->fetchAll();
+$kategori_list = $pdo->query("SELECT id, nama_kategori FROM kategori_barang ORDER BY nama_kategori ASC")->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
@@ -24,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $kode_item = sanitizeInput($_POST['kode_item']);
     $supplier_id = (int)$_POST['supplier_id'];
     $merek = sanitizeInput($_POST['merek']);
-    $kategori = sanitizeInput($_POST['kategori']);
+    $kategori_id = (int)$_POST['kategori_id'];
     $ukuran = sanitizeInput($_POST['ukuran'] === 'Lainnya' ? $_POST['ukuran_manual'] : $_POST['ukuran']);
     $warna = sanitizeInput($_POST['warna']);
     $kondisi = sanitizeInput($_POST['kondisi']);
@@ -32,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $modal = (float)$_POST['modal'];
     $harga_jual = (float)$_POST['harga_jual'];
     $tanggal_masuk = $_POST['tanggal_masuk'] ?: date('Y-m-d');
-    
+
     $fotoPath = null;
     if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
         $allowed = ['jpg', 'jpeg', 'png', 'webp'];
@@ -50,11 +51,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $stmt = $pdo->prepare('INSERT INTO barang (kode_item, supplier_id, merek, kategori, ukuran, warna, kondisi, deskripsi, foto, modal, harga_jual, status, tanggal_masuk) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "di_rak", ?)');
+    $stmt = $pdo->prepare('INSERT INTO barang (kode_item, supplier_id, merek, kategori_id, ukuran, warna, kondisi, deskripsi, foto, modal, harga_jual, status, tanggal_masuk) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "di_rak", ?)');
     $stmt->execute([
-        $kode_item, $supplier_id, $merek, $kategori, $ukuran, $warna, $kondisi, $deskripsi, $fotoPath, $modal, $harga_jual, $tanggal_masuk
+        $kode_item,
+        $supplier_id,
+        $merek,
+        $kategori_id,
+        $ukuran,
+        $warna,
+        $kondisi,
+        $deskripsi,
+        $fotoPath,
+        $modal,
+        $harga_jual,
+        $tanggal_masuk
     ]);
-    
+
     flash('success', 'Barang berhasil ditambahkan.');
     redirect('barang/index.php');
 }
@@ -65,7 +77,10 @@ include '../includes/header.php';
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
-body { font-family: Arial, sans-serif; background-color: #f8f9fa; }
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f8f9fa;
+    }
 </style>
 
 <div class="container-fluid mt-4 mb-5">
@@ -76,7 +91,7 @@ body { font-family: Arial, sans-serif; background-color: #f8f9fa; }
         <div class="card-body">
             <form method="POST" enctype="multipart/form-data" id="formTambah">
                 <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                
+
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label class="form-label">Kode Item</label>
@@ -89,10 +104,10 @@ body { font-family: Arial, sans-serif; background-color: #f8f9fa; }
                         <label class="form-label">Supplier</label>
                         <select name="supplier_id" id="supplier_id" class="form-select" required>
                             <option value="">-- Pilih Supplier --</option>
-                            <?php foreach($suppliers as $sup): ?>
-                            <option value="<?= $sup['id'] ?>" data-modal="<?= $sup['modal_per_item'] ?>">
-                                <?= htmlspecialchars($sup['nama_supplier']) ?> (Modal: <?= formatRupiah($sup['modal_per_item']) ?>)
-                            </option>
+                            <?php foreach ($suppliers as $sup): ?>
+                                <option value="<?= $sup['id'] ?>" data-modal="<?= $sup['modal_per_item'] ?>">
+                                    <?= htmlspecialchars($sup['nama_supplier']) ?> (Modal: <?= formatRupiah($sup['modal_per_item']) ?>)
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -105,12 +120,10 @@ body { font-family: Arial, sans-serif; background-color: #f8f9fa; }
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Kategori</label>
-                        <select name="kategori" class="form-select" required>
+                        <select name="kategori_id" class="form-select" required>
                             <option value="">-- Pilih --</option>
-                            <?php 
-                            $kategori_options = ['kaos', 'kemeja', 'celana_panjang', 'celana_pendek', 'jaket', 'hoodie', 'dress', 'rok', 'outer', 'aksesoris', 'lainnya'];
-                            foreach ($kategori_options as $kat): ?>
-                                <option value="<?= $kat ?>"><?= ucfirst(str_replace('_', ' ', $kat)) ?></option>
+                            <?php foreach ($kategori_list as $kat): ?>
+                                <option value="<?= $kat['id'] ?>"><?= htmlspecialchars($kat['nama_kategori']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -194,58 +207,62 @@ body { font-family: Arial, sans-serif; background-color: #f8f9fa; }
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// Auto modal from supplier
-document.getElementById('supplier_id').addEventListener('change', function() {
-    var selected = this.options[this.selectedIndex];
-    var modal = selected.getAttribute('data-modal');
-    if(modal) {
-        document.getElementById('modal').value = parseFloat(modal);
-        hitungUntung();
-    }
-});
-
-// Kalkulasi untung
-function hitungUntung() {
-    var modal = parseFloat(document.getElementById('modal').value) || 0;
-    var jual = parseFloat(document.getElementById('harga_jual').value) || 0;
-    var untung = jual - modal;
-    var format = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(untung);
-    document.getElementById('kalkulasiUntung').innerText = "Keuntungan: " + format;
-}
-document.getElementById('modal').addEventListener('input', hitungUntung);
-document.getElementById('harga_jual').addEventListener('input', hitungUntung);
-
-// Toggle Ukuran
-function toggleUkuran() {
-    var sel = document.getElementById('ukuran');
-    var man = document.getElementById('ukuran_manual');
-    if(sel.value === 'Lainnya') {
-        man.style.display = 'block';
-        man.required = true;
-    } else {
-        man.style.display = 'none';
-        man.required = false;
-    }
-}
-
-// Preview Foto
-document.getElementById('foto').addEventListener('change', function(e) {
-    if (this.files && this.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('previewFoto').style.display = 'block';
-            document.getElementById('previewFoto').src = e.target.result;
+    // Auto modal from supplier
+    document.getElementById('supplier_id').addEventListener('change', function() {
+        var selected = this.options[this.selectedIndex];
+        var modal = selected.getAttribute('data-modal');
+        if (modal) {
+            document.getElementById('modal').value = parseFloat(modal);
+            hitungUntung();
         }
-        reader.readAsDataURL(this.files[0]);
-    }
-});
+    });
 
-// Loading state
-document.getElementById('formTambah').addEventListener('submit', function() {
-    var btn = document.getElementById('btnSubmit');
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...';
-    btn.disabled = true;
-});
+    // Kalkulasi untung
+    function hitungUntung() {
+        var modal = parseFloat(document.getElementById('modal').value) || 0;
+        var jual = parseFloat(document.getElementById('harga_jual').value) || 0;
+        var untung = jual - modal;
+        var format = new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            maximumFractionDigits: 0
+        }).format(untung);
+        document.getElementById('kalkulasiUntung').innerText = "Keuntungan: " + format;
+    }
+    document.getElementById('modal').addEventListener('input', hitungUntung);
+    document.getElementById('harga_jual').addEventListener('input', hitungUntung);
+
+    // Toggle Ukuran
+    function toggleUkuran() {
+        var sel = document.getElementById('ukuran');
+        var man = document.getElementById('ukuran_manual');
+        if (sel.value === 'Lainnya') {
+            man.style.display = 'block';
+            man.required = true;
+        } else {
+            man.style.display = 'none';
+            man.required = false;
+        }
+    }
+
+    // Preview Foto
+    document.getElementById('foto').addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('previewFoto').style.display = 'block';
+                document.getElementById('previewFoto').src = e.target.result;
+            }
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+
+    // Loading state
+    document.getElementById('formTambah').addEventListener('submit', function() {
+        var btn = document.getElementById('btnSubmit');
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...';
+        btn.disabled = true;
+    });
 </script>
 
 <?php include '../includes/footer.php'; ?>
