@@ -29,9 +29,16 @@ include __DIR__ . '/includes/header.php';
 
             <!-- Laporan Deadstock -->
             <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; text-align: center;">
-                <h3>Barang Deadstock</h3>
+                <h3>Produk Deadstock</h3>
                 <p class="muted">Daftar item pakaian yang sudah lama di rak (> 30 hari) dan butuh evaluasi promo/diskon.</p>
                 <a href="deadstock.php" class="button" style="display: inline-block; margin-top: 15px; background-color: #dc3545; color: white; border: none;">Lihat Deadstock</a>
+            </div>
+
+            <!-- Laporan Pendapatan -->
+            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; text-align: center;">
+                <h3>Laporan Pendapatan (Laba/Rugi)</h3>
+                <p class="muted">Melihat rekap pendapatan kotor, modal, pengeluaran, serta laba bersih.</p>
+                <a href="laporan/pendapatan.php" class="button" style="display: inline-block; margin-top: 15px; background-color: #28a745; color: white; border: none;">Lihat Laba/Rugi</a>
             </div>
 
         </div>

@@ -16,8 +16,8 @@ DELETE FROM `diskon_promo`;
 ALTER TABLE `diskon_promo` AUTO_INCREMENT = 1;
 DELETE FROM `transaksi`;
 ALTER TABLE `transaksi` AUTO_INCREMENT = 1;
-DELETE FROM `barang`;
-ALTER TABLE `barang` AUTO_INCREMENT = 1;
+DELETE FROM `produk`;
+ALTER TABLE `produk` AUTO_INCREMENT = 1;
 DELETE FROM `suppliers`;
 ALTER TABLE `suppliers` AUTO_INCREMENT = 1;
 DELETE FROM `users`;
@@ -38,10 +38,10 @@ INSERT INTO `suppliers` (`id`, `nama_supplier`, `telepon`, `alamat`, `harga_per_
 (2, 'Jakarta Ball Import', '089876543210', 'Pasar Senen, Jakarta', 5000000.00, 120);
 
 -- ------------------------------------------------------------
--- 3. Data Barang 
+-- 3. Data Produk 
 -- Catatan: Menggunakan fungsi dinamis untuk memicu fitur Deadstock
 -- ------------------------------------------------------------
-INSERT INTO `barang` (`id`, `kode_item`, `supplier_id`, `merek`, `kategori`, `ukuran`, `warna`, `kondisi`, `deskripsi`, `modal`, `harga_jual`, `status`, `tanggal_masuk`) VALUES
+INSERT INTO `produk` (`id`, `kode_item`, `supplier_id`, `merek`, `kategori`, `ukuran`, `warna`, `kondisi`, `deskripsi`, `modal`, `harga_jual`, `status`, `tanggal_masuk`) VALUES
 -- Deadstock items (> 30 hari)
 (1, 'QS-10001', 1, 'Uniqlo', 'kaos', 'M', 'Putih', 'A', 'Mulus banget', 23333.33, 75000.00, 'di_rak', DATE_SUB(CURDATE(), INTERVAL 45 DAY)),
 (2, 'QS-10002', 1, 'Dickies', 'kemeja', 'L', 'Hitam', 'A', '-', 23333.33, 120000.00, 'di_rak', DATE_SUB(CURDATE(), INTERVAL 35 DAY)),
@@ -55,9 +55,9 @@ INSERT INTO `barang` (`id`, `kode_item`, `supplier_id`, `merek`, `kategori`, `uk
 
 -- ------------------------------------------------------------
 -- 4. Data Transaksi
--- Mengacu pada barang yang berstatus 'terjual' di atas
+-- Mengacu pada produk yang berstatus 'terjual' di atas
 -- ------------------------------------------------------------
-INSERT INTO `transaksi` (`id`, `barang_id`, `kasir_id`, `harga_jual`, `modal`, `metode_bayar`, `catatan`, `tanggal_jual`, `created_at`) VALUES
+INSERT INTO `transaksi` (`id`, `produk_id`, `kasir_id`, `harga_jual`, `modal`, `metode_bayar`, `catatan`, `tanggal_jual`, `created_at`) VALUES
 (1, 3, 2, 150000.00, 41666.67, 'tunai', 'Pelanggan tawar 150k', DATE_SUB(CURDATE(), INTERVAL 18 DAY), DATE_SUB(NOW(), INTERVAL 18 DAY)),
 (2, 4, 2, 200000.00, 41666.67, 'qris', '-', DATE_SUB(CURDATE(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 10 DAY)),
 -- Transaksi hari ini

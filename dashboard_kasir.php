@@ -49,7 +49,7 @@ $stmtHistory = $pdo->prepare("
            b.ukuran, b.kondisi, t.harga_jual,
            t.keuntungan, t.metode_bayar
     FROM transaksi t
-    JOIN barang b ON b.id = t.barang_id
+    JOIN produk b ON b.id = t.produk_id
     WHERE t.kasir_id = :kasir_id
       AND t.tanggal_jual = CURDATE()
     ORDER BY t.created_at DESC
@@ -196,7 +196,7 @@ include 'includes/header.php';
                 <?= formatTanggal(date('Y-m-d')) ?> • <span class="text-success fw-bold"><i class="bi bi-circle-fill" style="font-size: 0.8rem;"></i> Toko Buka</span>
             </p>
             <a href="transaksi/jual.php" class="btn btn-success btn-lg btn-jual-utama shadow">
-                <i class="bi bi-cart-plus-fill"></i> MULAI JUAL BARANG
+                <i class="bi bi-cart-plus-fill"></i> MULAI JUAL PRODUK
             </a>
         </div>
     </div>
@@ -368,8 +368,8 @@ include 'includes/header.php';
                 <div class="text-center py-5">
                     <div class="display-1 text-muted mb-3">🛍️</div>
                     <h5>Belum ada transaksi hari ini</h5>
-                    <p class="text-muted">Yuk mulai jual barang pertamamu hari ini!</p>
-                    <a href="transaksi/jual.php" class="btn btn-primary mt-2">Jual Barang Sekarang</a>
+                    <p class="text-muted">Yuk mulai jual produk pertamamu hari ini!</p>
+                    <a href="transaksi/jual.php" class="btn btn-primary mt-2">Jual Produk Sekarang</a>
                 </div>
             <?php endif; ?>
 

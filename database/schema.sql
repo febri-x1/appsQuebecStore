@@ -1,5 +1,5 @@
 -- ============================================================
---  QUEBEC STORE — Sistem Informasi Monitoring Aliran Barang
+--  QUEBEC STORE — Sistem Informasi Monitoring Aliran Produk
 --  File    : database/schema.sql
 --  Deskripsi: Script DDL lengkap untuk membuat semua tabel
 --  Database : quebec_store_db
@@ -24,8 +24,8 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `pengeluaran`;
 DROP TABLE IF EXISTS `diskon_promo`;
 DROP TABLE IF EXISTS `transaksi`;
-DROP TABLE IF EXISTS `barang`;
-DROP TABLE IF EXISTS `kategori_barang`;
+DROP TABLE IF EXISTS `produk`;
+DROP TABLE IF EXISTS `kategori_produk`;
 DROP TABLE IF EXISTS `suppliers`;
 DROP TABLE IF EXISTS `users`;
 
@@ -83,9 +83,9 @@ CREATE TABLE `suppliers` (
 
 
 -- ============================================================
--- TABEL 3: kategori_barang
+-- TABEL 3: kategori_produk
 -- ============================================================
-CREATE TABLE `kategori_barang` (
+CREATE TABLE `kategori_produk` (
     `id`            INT(11)      UNSIGNED NOT NULL AUTO_INCREMENT,
     `nama_kategori` VARCHAR(100) NOT NULL COMMENT 'Contoh: Kaos, Kemeja, Jaket',
     `deskripsi`     TEXT         DEFAULT NULL,
@@ -100,16 +100,16 @@ CREATE TABLE `kategori_barang` (
 
 
 -- ============================================================
--- TABEL 4: barang
+-- TABEL 4: produk
 -- Tabel inti sistem — setiap baris = 1 item fisik unik
--- (1 SKU = 1 barang, tidak ada duplikat stok)
+-- (1 SKU = 1 produk, tidak ada duplikat stok)
 -- ============================================================
-CREATE TABLE `barang` (
+CREATE TABLE `produk` (
     `id`          INT(11)        UNSIGNED NOT NULL AUTO_INCREMENT,
     `kode_item`   VARCHAR(20)    NOT NULL COMMENT 'Kode unik item, contoh: QS-2025-00001',
     `supplier_id` INT(11)        UNSIGNED NOT NULL COMMENT 'FK ke tabel suppliers',
     `merek`       VARCHAR(100)   NOT NULL COMMENT 'Merek pakaian, contoh: Levis, Zara, H&M',
-    `kategori_id` INT(11)        UNSIGNED NOT NULL COMMENT 'FK ke tabel kategori_barang',
+    `kategori_id` INT(11)        UNSIGNED NOT NULL COMMENT 'FK ke tabel kategori_produk',
     `ukuran`      VARCHAR(10)    NOT NULL COMMENT 'Ukuran: XS, S, M, L, XL, XXL, atau angka',
     `warna`       VARCHAR(50)    NOT NULL COMMENT 'Warna dominan item',
     `kondisi`     ENUM('A','B','C') NOT NULL COMMENT 'A=Sangat Baik, B=Baik, C=Cukup',
@@ -119,28 +119,28 @@ CREATE TABLE `barang` (
     `harga_jual`  DECIMAL(10,2)  NOT NULL DEFAULT 0.00 COMMENT 'Harga jual yang ditetapkan (Rp)',
     `status`      ENUM('di_rak','terjual','rusak') NOT NULL DEFAULT 'di_rak'
                   COMMENT 'Status item: di_rak=tersedia, terjual=sudah laku, rusak=tidak dijual',
-    `tanggal_masuk` DATE         NOT NULL COMMENT 'Tanggal barang masuk / didaftarkan ke sistem',
+    `tanggal_masuk` DATE         NOT NULL COMMENT 'Tanggal produk masuk / didaftarkan ke sistem',
     `created_at`  TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`  TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uq_barang_kode_item` (`kode_item`),
-    KEY `idx_barang_supplier`      (`supplier_id`),
-    KEY `idx_barang_status`        (`status`),
-    KEY `idx_barang_kategori`      (`kategori_id`),
-    KEY `idx_barang_kondisi`       (`kondisi`),
-    KEY `idx_barang_tanggal_masuk` (`tanggal_masuk`),
-    KEY `idx_barang_merek`         (`merek`),
+    UNIQUE KEY `uq_produk_kode_item` (`kode_item`),
+    KEY `idx_produk_supplier`      (`supplier_id`),
+    KEY `idx_produk_status`        (`status`),
+    KEY `idx_produk_kategori`      (`kategori_id`),
+    KEY `idx_produk_kondisi`       (`kondisi`),
+    KEY `idx_produk_tanggal_masuk` (`tanggal_masuk`),
+    KEY `idx_produk_merek`         (`merek`),
 
-    CONSTRAINT `fk_barang_supplier`
+    CONSTRAINT `fk_produk_supplier`
         FOREIGN KEY (`supplier_id`)
         REFERENCES `suppliers` (`id`)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
-    CONSTRAINT `fk_barang_kategori`
+    CONSTRAINT `fk_produk_kategori`
         FOREIGN KEY (`kategori_id`)
-        REFERENCES `kategori_barang` (`id`)
+        REFERENCES `kategori_produk` (`id`)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
 
@@ -157,7 +157,7 @@ CREATE TABLE `barang` (
 -- ============================================================
 CREATE TABLE `transaksi` (
     `id`           INT(11)       UNSIGNED NOT NULL AUTO_INCREMENT,
-    `barang_id`    INT(11)       UNSIGNED NOT NULL COMMENT 'FK ke tabel barang',
+    `produk_id`    INT(11)       UNSIGNED NOT NULL COMMENT 'FK ke tabel produk',
     `kasir_id`     INT(11)       UNSIGNED NOT NULL COMMENT 'FK ke tabel users (kasir yang melayani)',
     `harga_jual`   DECIMAL(10,2) NOT NULL COMMENT 'Harga terjual saat transaksi (Rp)',
     `modal`        DECIMAL(10,2) NOT NULL COMMENT 'Modal item saat transaksi (snapshot)',
@@ -171,14 +171,14 @@ CREATE TABLE `transaksi` (
     `created_at`   TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (`id`),
-    KEY `idx_transaksi_barang`       (`barang_id`),
+    KEY `idx_transaksi_produk`       (`produk_id`),
     KEY `idx_transaksi_kasir`        (`kasir_id`),
     KEY `idx_transaksi_tanggal_jual` (`tanggal_jual`),
     KEY `idx_transaksi_metode_bayar` (`metode_bayar`),
 
-    CONSTRAINT `fk_transaksi_barang`
-        FOREIGN KEY (`barang_id`)
-        REFERENCES `barang` (`id`)
+    CONSTRAINT `fk_transaksi_produk`
+        FOREIGN KEY (`produk_id`)
+        REFERENCES `produk` (`id`)
         ON UPDATE CASCADE
         ON DELETE RESTRICT,
 
@@ -196,7 +196,7 @@ CREATE TABLE `transaksi` (
 
 -- ============================================================
 -- VIEW 1: v_stok_aktif
--- Barang yang masih tersedia di rak (belum terjual)
+-- Produk yang masih tersedia di rak (belum terjual)
 -- ============================================================
 CREATE OR REPLACE VIEW `v_stok_aktif` AS
     SELECT
@@ -213,15 +213,15 @@ CREATE OR REPLACE VIEW `v_stok_aktif` AS
         b.tanggal_masuk,
         DATEDIFF(CURDATE(), b.tanggal_masuk) AS hari_di_rak,
         s.nama_supplier
-    FROM  `barang`    b
+    FROM  `produk`    b
     JOIN  `suppliers` s ON s.id = b.supplier_id
-    JOIN  `kategori_barang` kb ON kb.id = b.kategori_id
+    JOIN  `kategori_produk` kb ON kb.id = b.kategori_id
     WHERE b.status = 'di_rak';
 
 
 -- ============================================================
 -- VIEW 2: v_deadstock
--- Barang yang sudah > 30 hari di rak dan belum terjual
+-- Produk yang sudah > 30 hari di rak dan belum terjual
 -- Digunakan untuk alert deadstock di dashboard
 -- ============================================================
 CREATE OR REPLACE VIEW `v_deadstock` AS
@@ -233,7 +233,7 @@ CREATE OR REPLACE VIEW `v_deadstock` AS
 
 -- ============================================================
 -- VIEW 3: v_laporan_transaksi
--- Gabungan data transaksi dengan detail barang dan kasir
+-- Gabungan data transaksi dengan detail produk dan kasir
 -- Digunakan untuk halaman laporan dan dashboard
 -- ============================================================
 CREATE OR REPLACE VIEW `v_laporan_transaksi` AS
@@ -255,8 +255,8 @@ CREATE OR REPLACE VIEW `v_laporan_transaksi` AS
         u.nama                            AS nama_kasir,
         s.nama_supplier
     FROM  `transaksi` t
-    JOIN  `barang`    b ON b.id = t.barang_id
-    JOIN  `kategori_barang` kb ON kb.id = b.kategori_id
+    JOIN  `produk`    b ON b.id = t.produk_id
+    JOIN  `kategori_produk` kb ON kb.id = b.kategori_id
     JOIN  `users`     u ON u.id = t.kasir_id
     JOIN  `suppliers` s ON s.id = b.supplier_id;
 
@@ -308,7 +308,7 @@ CREATE TABLE `pengeluaran` (
 
 -- ============================================================
 -- TABEL 7: diskon_promo
--- Mengatur diskon atau potongan harga untuk barang/transaksi
+-- Mengatur diskon atau potongan harga untuk produk/transaksi
 -- ============================================================
 CREATE TABLE `diskon_promo` (
     `id`              INT(11)       UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -336,14 +336,14 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Selesai. Tabel yang dibuat:
 --   1. users        — akun pemilik & kasir
 --   2. suppliers    — pemasok bal pakaian
---   3. barang       — item pakaian (1 baris = 1 fisik unik)
+--   3. produk       — item pakaian (1 baris = 1 fisik unik)
 --   4. transaksi    — riwayat penjualan
 --   5. pengeluaran  — operasional toko
 --   6. diskon_promo — diskon dan promo
 --
 -- View yang dibuat:
---   1. v_stok_aktif          — barang masih di rak
---   2. v_deadstock           — barang > 30 hari belum terjual
+--   1. v_stok_aktif          — produk masih di rak
+--   2. v_deadstock           — produk > 30 hari belum terjual
 --   3. v_laporan_transaksi   — laporan gabungan untuk pelaporan
 --   4. v_ringkasan_harian    — ringkasan pendapatan per hari
 --

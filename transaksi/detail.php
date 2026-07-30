@@ -11,7 +11,7 @@ if ($user['role'] !== 'pemilik' && $user['role'] !== 'kasir') {
 
 $id = (int)($_GET['id'] ?? 0);
 
-$stmt = $pdo->prepare("SELECT * FROM v_laporan_transaksi WHERE transaksi_id = ?");
+$stmt = $pdo->prepare("SELECT * FROM (SELECT t.id AS transaksi_id, t.tanggal_jual, t.created_at, b.kode_item, b.merek, kb.nama_kategori AS kategori, b.ukuran, b.kondisi, t.harga_jual, t.modal, t.keuntungan, t.metode_bayar, t.catatan, u.id AS kasir_id, u.nama AS nama_kasir, s.nama_supplier FROM transaksi t JOIN produk b ON b.id = t.produk_id JOIN kategori_produk kb ON kb.id = b.kategori_id JOIN users u ON u.id = t.kasir_id JOIN suppliers s ON s.id = b.supplier_id) AS v_laporan_transaksi WHERE transaksi_id = ?");
 $stmt->execute([$id]);
 $t = $stmt->fetch();
 
@@ -88,11 +88,11 @@ include '../includes/header.php';
             </div>
         </div>
 
-        <!-- Kolom Kanan - Info Barang -->
+        <!-- Kolom Kanan - Info Produk -->
         <div class="col-md-6 mb-3">
             <div class="card shadow-sm h-100 border-info">
                 <div class="card-header bg-info text-dark">
-                    <h5 class="mb-0"><i class="bi bi-box-seam"></i> Info Barang</h5>
+                    <h5 class="mb-0"><i class="bi bi-box-seam"></i> Info Produk</h5>
                 </div>
                 <div class="card-body">
                     <table class="table table-borderless">
@@ -179,7 +179,7 @@ include '../includes/header.php';
                     <div class="modal-body text-start">
                         <p>Anda yakin ingin menghapus transaksi ini?</p>
                         <div class="alert alert-warning mb-0">
-                            <strong>Peringatan!</strong> Menghapus transaksi akan mengembalikan status barang menjadi <strong>Di Rak</strong>. Aksi ini tidak dapat dibatalkan.
+                            <strong>Peringatan!</strong> Menghapus transaksi akan mengembalikan status produk menjadi <strong>Di Rak</strong>. Aksi ini tidak dapat dibatalkan.
                         </div>
                     </div>
                     <div class="modal-footer">

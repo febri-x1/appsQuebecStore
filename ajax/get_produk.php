@@ -14,11 +14,12 @@ if (strlen($q) < 3) {
 
 try {
     $stmt = $pdo->prepare("
-        SELECT b.id, b.kode_item, b.merek, b.kategori, b.ukuran, b.warna,
-               b.kondisi, b.foto, b.modal, b.harga_jual, b.status,
+        SELECT b.id, b.kode_item, b.merek, kb.nama_kategori AS kategori, b.ukuran, b.warna,
+               b.kondisi, b.foto_produk AS foto, b.modal, b.harga_jual, b.status,
                DATEDIFF(CURDATE(), b.tanggal_masuk) AS hari_di_rak,
                s.nama_supplier
-        FROM barang b
+        FROM produk b
+        LEFT JOIN kategori_produk kb ON b.kategori_id = kb.id
         LEFT JOIN suppliers s ON s.id = b.supplier_id
         WHERE b.status = 'di_rak'
           AND (b.kode_item LIKE :q OR b.merek LIKE :q)

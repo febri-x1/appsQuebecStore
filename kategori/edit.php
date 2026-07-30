@@ -21,7 +21,7 @@ if (empty($_SESSION['csrf_token'])) {
 }
 
 // Ambil data kategori
-$stmt = $pdo->prepare("SELECT * FROM kategori_barang WHERE id = ?");
+$stmt = $pdo->prepare("SELECT * FROM kategori_produk WHERE id = ?");
 $stmt->execute([$id]);
 $kategori = $stmt->fetch();
 
@@ -39,14 +39,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $deskripsi = sanitizeInput($_POST['deskripsi']);
 
     // Cek apakah nama kategori sudah ada dan bukan milik id ini
-    $stmtCek = $pdo->prepare("SELECT id FROM kategori_barang WHERE nama_kategori = ? AND id != ?");
+    $stmtCek = $pdo->prepare("SELECT id FROM kategori_produk WHERE nama_kategori = ? AND id != ?");
     $stmtCek->execute([$nama_kategori, $id]);
     if ($stmtCek->fetch()) {
         flash('error', 'Nama kategori sudah digunakan.');
         redirect('kategori/edit.php?id=' . $id);
     }
 
-    $stmtUpdate = $pdo->prepare('UPDATE kategori_barang SET nama_kategori = ?, deskripsi = ? WHERE id = ?');
+    $stmtUpdate = $pdo->prepare('UPDATE kategori_produk SET nama_kategori = ?, deskripsi = ? WHERE id = ?');
     $stmtUpdate->execute([$nama_kategori, $deskripsi, $id]);
 
     flash('success', 'Kategori berhasil diperbarui.');

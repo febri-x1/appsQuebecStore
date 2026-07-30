@@ -62,7 +62,8 @@ $pageTitle = $pageTitle ?? APP_NAME;
 
         // SCRIPT PEMBATASAN 1 TAB PER ROLE
         (function() {
-            const role = '<?= $_SESSION['active_role'] ?? '' ?>';
+            const urlParams = new URLSearchParams(window.location.search);
+            const role = urlParams.get('switch_role') || '<?= $_SESSION['active_role'] ?? '' ?>';
             if (role) {
                 const channelName = 'tab_restriction_' + role;
                 const bc = new BroadcastChannel(channelName);

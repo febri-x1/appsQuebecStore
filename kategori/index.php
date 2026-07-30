@@ -12,7 +12,7 @@ if (current_user()['role'] === 'kasir') {
 $pageTitle = 'Manajemen Kategori';
 
 // Ambil data kategori
-$sql = "SELECT * FROM kategori_barang ORDER BY id DESC";
+$sql = "SELECT * FROM kategori_produk ORDER BY id DESC";
 $kategoriList = $pdo->query($sql)->fetchAll();
 
 include '../includes/header.php';
@@ -76,7 +76,7 @@ include '../includes/header.php';
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                Apakah Anda yakin ingin menghapus kategori ini? Kategori tidak dapat dihapus jika sudah digunakan di data barang.
+                Apakah Anda yakin ingin menghapus kategori ini? Kategori tidak dapat dihapus jika sudah digunakan di data produk.
             </div>
             <div class="modal-footer">
                 <form method="POST" action="hapus.php" id="deleteForm">

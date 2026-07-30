@@ -11,8 +11,8 @@ include __DIR__ . '/includes/header.php';
 ?>
 <div class="card">
     <div class="card-header">
-        <h2>Daftar Barang Deadstock (> 30 Hari)</h2>
-        <p class="muted">Barang-barang ini sudah berada di rak lebih dari 30 hari dan belum terjual. Pertimbangkan untuk memberi diskon atau promo.</p>
+        <h2>Daftar Produk Deadstock (> 30 Hari)</h2>
+        <p class="muted">Produk-produk ini sudah berada di rak lebih dari 30 hari dan belum terjual. Pertimbangkan untuk memberi diskon atau promo.</p>
     </div>
     <div class="card-body">
         <table class="data-table">
@@ -44,7 +44,7 @@ include __DIR__ . '/includes/header.php';
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="8" style="text-align: center;">Tidak ada barang deadstock saat ini. Bagus!</td>
+                        <td colspan="8" style="text-align: center;">Tidak ada produk deadstock saat ini. Bagus!</td>
                     </tr>
                 <?php endif; ?>
             </tbody>

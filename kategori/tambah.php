@@ -23,14 +23,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $deskripsi = sanitizeInput($_POST['deskripsi']);
 
     // Cek apakah nama kategori sudah ada
-    $stmtCek = $pdo->prepare("SELECT id FROM kategori_barang WHERE nama_kategori = ?");
+    $stmtCek = $pdo->prepare("SELECT id FROM kategori_produk WHERE nama_kategori = ?");
     $stmtCek->execute([$nama_kategori]);
     if ($stmtCek->fetch()) {
         flash('error', 'Nama kategori sudah digunakan.');
         redirect('kategori/tambah.php');
     }
 
-    $stmt = $pdo->prepare('INSERT INTO kategori_barang (nama_kategori, deskripsi) VALUES (?, ?)');
+    $stmt = $pdo->prepare('INSERT INTO kategori_produk (nama_kategori, deskripsi) VALUES (?, ?)');
     $stmt->execute([$nama_kategori, $deskripsi]);
 
     flash('success', 'Kategori berhasil ditambahkan.');

@@ -18,10 +18,10 @@ if (empty($_SESSION['csrf_token'])) {
 $stmtProduk = $pdo->query("
     SELECT b.id, b.kode_item, b.merek, kb.nama_kategori AS kategori, 
            b.ukuran, b.warna, b.kondisi, b.modal, b.harga_jual, 
-           b.foto, DATEDIFF(CURDATE(), b.tanggal_masuk) AS hari_di_rak, 
+           b.foto_produk AS foto, DATEDIFF(CURDATE(), b.tanggal_masuk) AS hari_di_rak, 
            s.nama_supplier
-    FROM barang b
-    JOIN kategori_barang kb ON b.kategori_id = kb.id
+    FROM produk b
+    JOIN kategori_produk kb ON b.kategori_id = kb.id
     JOIN suppliers s ON b.supplier_id = s.id
     WHERE b.status = 'di_rak'
     ORDER BY b.tanggal_masuk DESC
@@ -133,7 +133,7 @@ include '../includes/header.php';
         <div class="col-md-7 mb-4">
             <div class="card shadow-sm mb-3">
                 <div class="card-body position-relative">
-                    <h5 class="mb-3 text-secondary"><i class="bi bi-search"></i> Cari Barang</h5>
+                    <h5 class="mb-3 text-secondary"><i class="bi bi-search"></i> Cari Produk</h5>
                     <input type="text" id="inputCari" class="form-control pos-search-input" placeholder="Ketik kode item (QS-2025-00001) atau nama merek..." autocomplete="off" autofocus>
 
                     <!-- Suggestions Dropdown -->
@@ -167,7 +167,7 @@ include '../includes/header.php';
                 <?php endif; ?>
             </div>
 
-            <!-- KARTU INFO BARANG -->
+            <!-- KARTU INFO PRODUK -->
             <div id="kartuInfo" style="display: none;">
                 <div class="card card-info" id="cardInfoBorder">
                     <div class="card-body">
@@ -212,12 +212,12 @@ include '../includes/header.php';
                 <div class="card-body p-4">
                     <form id="formPenjualan">
                         <input type="hidden" id="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-                        <input type="hidden" id="barang_id" name="barang_id">
+                        <input type="hidden" id="produk_id" name="produk_id">
                         <input type="hidden" id="modal_item" name="modal">
 
                         <div class="mb-3">
-                            <label class="form-label text-muted">Barang Terpilih</label>
-                            <input type="text" class="form-control bg-light fw-bold" id="formBarangNama" readonly placeholder="Belum ada barang dipilih">
+                            <label class="form-label text-muted">Produk Terpilih</label>
+                            <input type="text" class="form-control bg-light fw-bold" id="formProdukNama" readonly placeholder="Belum ada produk dipilih">
                         </div>
 
                         <div class="mb-4">
@@ -280,7 +280,7 @@ include '../includes/header.php';
                             <i class="bi bi-check-circle-fill"></i> PROSES PENJUALAN
                         </button>
                         <button type="button" class="btn btn-outline-secondary w-100" id="btnReset">
-                            <i class="bi bi-arrow-counterclockwise"></i> Ganti Barang
+                            <i class="bi bi-arrow-counterclockwise"></i> Ganti Produk
                         </button>
                     </form>
                 </div>
@@ -300,8 +300,8 @@ include '../includes/header.php';
                 <h3 class="mb-4">TRANSAKSI BERHASIL!</h3>
 
                 <div class="bg-light rounded p-3 text-start mb-4">
-                    <h5 class="mb-1" id="suksesNamaBarang">-</h5>
-                    <p class="text-muted small mb-3 border-bottom pb-2" id="suksesKodeBarang">-</p>
+                    <h5 class="mb-1" id="suksesNamaProduk">-</h5>
+                    <p class="text-muted small mb-3 border-bottom pb-2" id="suksesKodeProduk">-</p>
 
                     <div class="d-flex justify-content-between mb-1">
                         <span>Terjual (Aktual):</span>
@@ -318,7 +318,7 @@ include '../includes/header.php';
                 </div>
 
                 <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-primary btn-lg" onclick="jualLagi()"><i class="bi bi-cart-plus"></i> Jual Barang Lagi</button>
+                    <button type="button" class="btn btn-primary btn-lg" onclick="jualLagi()"><i class="bi bi-cart-plus"></i> Jual Produk Lagi</button>
                     <button type="button" class="btn btn-outline-primary btn-lg" onclick="cetakStruk()"><i class="bi bi-printer"></i> Cetak Struk</button>
                     <a href="riwayat_kasir.php" class="btn btn-outline-secondary"><i class="bi bi-list-check"></i> Lihat Riwayat Hari Ini</a>
                 </div>
@@ -347,7 +347,7 @@ include '../includes/header.php';
     let currentItem = null;
     let currentTransaksiId = null;
 
-    // --- 1. AJAX Pencarian Barang ---
+    // --- 1. AJAX Pencarian Produk ---
     inputCari.addEventListener('input', function() {
         clearTimeout(timeoutId);
         const q = this.value.trim();
@@ -358,12 +358,12 @@ include '../includes/header.php';
         }
 
         timeoutId = setTimeout(() => {
-            fetch(`../ajax/get_barang.php?q=${encodeURIComponent(q)}`)
+            fetch(`../ajax/get_produk.php?q=${encodeURIComponent(q)}`)
                 .then(res => res.json())
                 .then(data => {
                     suggestionBox.innerHTML = '';
                     if (data.length === 0) {
-                        suggestionBox.innerHTML = '<div class="p-3 text-danger"><i class="bi bi-info-circle"></i> Tidak ada barang tersedia yang cocok.</div>';
+                        suggestionBox.innerHTML = '<div class="p-3 text-danger"><i class="bi bi-info-circle"></i> Tidak ada produk tersedia yang cocok.</div>';
                     } else {
                         data.forEach(item => {
                             const div = document.createElement('div');
@@ -390,7 +390,7 @@ include '../includes/header.php';
         if (!inputCari.contains(e.target) && !suggestionBox.contains(e.target)) suggestionBox.style.display = 'none';
     });
 
-    // --- 2. Pemilihan Barang ---
+    // --- 2. Pemilihan Produk ---
     function selectItem(item) {
         currentItem = item;
         suggestionBox.style.display = 'none';
@@ -431,9 +431,9 @@ include '../includes/header.php';
         kartuInfo.style.display = 'block';
         document.getElementById('gridProdukTersedia').style.display = 'none';
 
-        document.getElementById('barang_id').value = item.id;
+        document.getElementById('produk_id').value = item.id;
         document.getElementById('modal_item').value = item.modal;
-        document.getElementById('formBarangNama').value = `${item.kode_item} - ${item.merek}`;
+        document.getElementById('formProdukNama').value = `${item.kode_item} - ${item.merek}`;
 
         const inputHarga = document.getElementById('inputHargaJual');
         inputHarga.value = item.harga_jual;
@@ -508,7 +508,7 @@ include '../includes/header.php';
         });
     });
 
-    // --- 4. Tombol Ganti Barang (Reset Form) ---
+    // --- 4. Tombol Ganti Produk (Reset Form) ---
     document.getElementById('btnReset').addEventListener('click', function() {
         currentItem = null;
         kartuInfo.style.display = 'none';
@@ -534,7 +534,7 @@ include '../includes/header.php';
 
         const formData = new URLSearchParams();
         formData.append('csrf_token', document.getElementById('csrf_token').value);
-        formData.append('barang_id', document.getElementById('barang_id').value);
+        formData.append('produk_id', document.getElementById('produk_id').value);
         formData.append('harga_jual', document.getElementById('inputHargaJual').value);
         formData.append('metode_bayar', document.querySelector('input[name="metode_bayar"]:checked').value);
         formData.append('catatan', document.getElementById('inputCatatan').value);
@@ -556,8 +556,8 @@ include '../includes/header.php';
             .then(data => {
                 // Tampilkan Modal Sukses
                 currentTransaksiId = data.data.transaksi_id;
-                document.getElementById('suksesNamaBarang').innerText = `${data.data.merek} - ${currentItem.kategori.replace('_', ' ').toUpperCase()} ${currentItem.ukuran}`;
-                document.getElementById('suksesKodeBarang').innerText = data.data.kode_item;
+                document.getElementById('suksesNamaProduk').innerText = `${data.data.merek} - ${currentItem.kategori.replace('_', ' ').toUpperCase()} ${currentItem.ukuran}`;
+                document.getElementById('suksesKodeProduk').innerText = data.data.kode_item;
                 document.getElementById('suksesTerjual').innerText = formatRp(data.data.harga_jual);
                 document.getElementById('suksesMetode').innerText = data.data.metode_bayar.toUpperCase();
 

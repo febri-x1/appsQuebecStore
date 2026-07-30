@@ -43,22 +43,21 @@ if ($search !== '') {
 $whereClause = "WHERE " . implode(" AND ", $where);
 
 // Base count query
-$stmtCount = $pdo->prepare("SELECT COUNT(*) FROM v_laporan_transaksi $whereClause");
+$stmtCount = $pdo->prepare("SELECT COUNT(*) FROM (SELECT t.id AS transaksi_id, t.tanggal_jual, t.created_at, b.kode_item, b.merek, kb.nama_kategori AS kategori, b.ukuran, b.kondisi, t.harga_jual, t.modal, t.keuntungan, t.metode_bayar, t.catatan, u.id AS kasir_id, u.nama AS nama_kasir, s.nama_supplier FROM transaksi t JOIN produk b ON b.id = t.produk_id JOIN kategori_produk kb ON kb.id = b.kategori_id JOIN users u ON u.id = t.kasir_id JOIN suppliers s ON s.id = b.supplier_id) AS v_laporan_transaksi $whereClause");
 $stmtCount->execute($params);
 $totalData = $stmtCount->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
-// Sum query for KPI and Footer
-$stmtSum = $pdo->prepare("SELECT SUM(harga_jual) as total_pendapatan, SUM(modal) as total_modal, SUM(keuntungan) as total_keuntungan FROM v_laporan_transaksi $whereClause");
+// Sum query for Footer
+$stmtSum = $pdo->prepare("SELECT SUM(harga_jual) as total_pendapatan, SUM(modal) as total_modal FROM (SELECT t.id AS transaksi_id, t.tanggal_jual, t.created_at, b.kode_item, b.merek, kb.nama_kategori AS kategori, b.ukuran, b.kondisi, t.harga_jual, t.modal, t.keuntungan, t.metode_bayar, t.catatan, u.id AS kasir_id, u.nama AS nama_kasir, s.nama_supplier FROM transaksi t JOIN produk b ON b.id = t.produk_id JOIN kategori_produk kb ON kb.id = b.kategori_id JOIN users u ON u.id = t.kasir_id JOIN suppliers s ON s.id = b.supplier_id) AS v_laporan_transaksi $whereClause");
 $stmtSum->execute($params);
 $sums = $stmtSum->fetch();
 
 $total_pendapatan = $sums['total_pendapatan'] ?? 0;
 $total_modal = $sums['total_modal'] ?? 0;
-$total_keuntungan = $sums['total_keuntungan'] ?? 0;
 
 // Fetch data
-$sql = "SELECT * FROM v_laporan_transaksi $whereClause ORDER BY tanggal_jual DESC, transaksi_id DESC LIMIT $limit OFFSET $offset";
+$sql = "SELECT * FROM (SELECT t.id AS transaksi_id, t.tanggal_jual, t.created_at, b.kode_item, b.merek, kb.nama_kategori AS kategori, b.ukuran, b.kondisi, t.harga_jual, t.modal, t.keuntungan, t.metode_bayar, t.catatan, u.id AS kasir_id, u.nama AS nama_kasir, s.nama_supplier FROM transaksi t JOIN produk b ON b.id = t.produk_id JOIN kategori_produk kb ON kb.id = b.kategori_id JOIN users u ON u.id = t.kasir_id JOIN suppliers s ON s.id = b.supplier_id) AS v_laporan_transaksi $whereClause ORDER BY tanggal_jual DESC, transaksi_id DESC LIMIT $limit OFFSET $offset";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $transaksiList = $stmt->fetchAll();
@@ -73,64 +72,24 @@ include '../includes/header.php';
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
 <div class="container-fluid mt-4 mb-5" style="font-family: Arial, Helvetica, sans-serif;">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Riwayat Transaksi</h2>
-        <div>
-            <a href="../laporan/export_pdf.php?dari=<?= urlencode($dari) ?>&sampai=<?= urlencode($sampai) ?>" class="btn btn-outline-danger"><i class="bi bi-file-earmark-pdf"></i> Ekspor PDF</a>
-            <a href="../laporan/export_excel.php?dari=<?= urlencode($dari) ?>&sampai=<?= urlencode($sampai) ?>" class="btn btn-outline-success"><i class="bi bi-file-earmark-excel"></i> Ekspor Excel</a>
-        </div>
-    </div>
-
-    <!-- Summary Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3 mb-2">
-            <div class="card shadow-sm border-0 border-start border-primary border-4 h-100">
-                <div class="card-body">
-                    <div class="text-muted small text-uppercase mb-1">Total Transaksi</div>
-                    <h4 class="mb-0 text-primary">🧾 <?= number_format($totalData, 0, ',', '.') ?> <small class="text-muted fs-6">trx</small></h4>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-2">
-            <div class="card shadow-sm border-0 border-start border-success border-4 h-100">
-                <div class="card-body">
-                    <div class="text-muted small text-uppercase mb-1">Total Pendapatan</div>
-                    <h4 class="mb-0 text-success">💰 <?= formatRupiah($total_pendapatan) ?></h4>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-2">
-            <div class="card shadow-sm border-0 border-start border-warning border-4 h-100">
-                <div class="card-body">
-                    <div class="text-muted small text-uppercase mb-1">Total Modal</div>
-                    <h4 class="mb-0 text-warning">📉 <?= formatRupiah($total_modal) ?></h4>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-2">
-            <div class="card shadow-sm border-0 border-start border-info border-4 h-100">
-                <div class="card-body">
-                    <div class="text-muted small text-uppercase mb-1">Total Keuntungan</div>
-                    <h4 class="mb-0 text-info">✨ <?= formatRupiah($total_keuntungan) ?></h4>
-                </div>
-            </div>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-receipt"></i> Manajemen Transaksi</h2>
     </div>
 
     <!-- Filter Card -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-body bg-light rounded">
             <form method="GET" class="row g-3 align-items-end">
                 <div class="col-md-2">
-                    <label class="form-label">Tanggal Dari</label>
+                    <label class="form-label text-muted small fw-bold">Tanggal Dari</label>
                     <input type="date" name="dari" class="form-control" value="<?= htmlspecialchars($dari) ?>">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Tanggal Sampai</label>
+                    <label class="form-label text-muted small fw-bold">Tanggal Sampai</label>
                     <input type="date" name="sampai" class="form-control" value="<?= htmlspecialchars($sampai) ?>">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Kasir</label>
+                    <label class="form-label text-muted small fw-bold">Kasir</label>
                     <select name="kasir_id" class="form-select">
                         <option value="">Semua Kasir</option>
                         <?php foreach($kasirList as $k): ?>
@@ -139,7 +98,7 @@ include '../includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Metode Bayar</label>
+                    <label class="form-label text-muted small fw-bold">Metode Bayar</label>
                     <select name="metode_bayar" class="form-select">
                         <option value="">Semua</option>
                         <option value="tunai" <?= $metode_bayar == 'tunai' ? 'selected' : '' ?>>Tunai</option>
@@ -148,25 +107,25 @@ include '../includes/header.php';
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Cari (Kode/Merek)</label>
+                    <label class="form-label text-muted small fw-bold">Cari (Kode/Merek)</label>
                     <input type="text" name="search" class="form-control" placeholder="Cari..." value="<?= htmlspecialchars($search) ?>">
                 </div>
                 <div class="col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-primary flex-grow-1"><i class="bi bi-search"></i> Filter</button>
-                    <a href="index.php" class="btn btn-secondary"><i class="bi bi-arrow-counterclockwise"></i> Reset</a>
+                    <a href="index.php" class="btn btn-outline-secondary" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></a>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Data Table -->
-    <div class="card shadow-sm">
+    <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover table-bordered align-middle text-nowrap mb-0">
-                    <thead class="table-light">
+                    <thead class="table-dark">
                         <tr>
-                            <th>No</th>
+                            <th class="text-center">No</th>
                             <th>Tanggal</th>
                             <th>Kode Item</th>
                             <th>Merek</th>
@@ -176,19 +135,16 @@ include '../includes/header.php';
                             <th>Metode Bayar</th>
                             <th class="text-end">Harga Jual</th>
                             <th class="text-end">Modal</th>
-                            <th class="text-end">Keuntungan</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (count($transaksiList) > 0): ?>
-                            <?php $no = $offset + 1; foreach ($transaksiList as $t): 
-                                $isToday = (date('Y-m-d', strtotime($t['created_at'])) === date('Y-m-d'));
-                            ?>
-                            <tr style="<?= $isToday ? 'border-left: 4px solid #0d6efd;' : '' ?>">
-                                <td><?= $no++ ?></td>
+                            <?php $no = $offset + 1; foreach ($transaksiList as $t): ?>
+                            <tr>
+                                <td class="text-center text-muted"><?= $no++ ?></td>
                                 <td><?= formatTanggal($t['tanggal_jual']) ?></td>
-                                <td><?= htmlspecialchars($t['kode_item']) ?></td>
+                                <td class="fw-bold"><?= htmlspecialchars($t['kode_item']) ?></td>
                                 <td><?= htmlspecialchars($t['merek']) ?></td>
                                 <td><?= htmlspecialchars($t['ukuran']) ?></td>
                                 <td>
@@ -210,24 +166,20 @@ include '../includes/header.php';
                                         <span class="badge bg-info text-dark">Transfer</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-end"><?= formatRupiah($t['harga_jual']) ?></td>
-                                <td class="text-end"><?= formatRupiah($t['modal']) ?></td>
-                                <td class="text-end fw-bold <?= $t['keuntungan'] > 0 ? 'text-success' : ($t['keuntungan'] < 0 ? 'text-danger' : '') ?>">
-                                    <?= formatRupiah($t['keuntungan']) ?>
-                                </td>
+                                <td class="text-end fw-bold text-success"><?= formatRupiah($t['harga_jual']) ?></td>
+                                <td class="text-end text-muted"><?= formatRupiah($t['modal']) ?></td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
-                                        <a href="detail.php?id=<?= $t['transaksi_id'] ?>" class="btn btn-info text-white">Detail</a>
-                                        <?php if($isToday): ?>
-                                            <button class="btn btn-outline-danger" onclick="confirmDelete(<?= $t['transaksi_id'] ?>, '<?= htmlspecialchars($t['kode_item'].' - '.$t['merek']) ?>', '<?= formatTanggal($t['tanggal_jual']) ?>')"><i class="bi bi-trash"></i> Hapus</button>
-                                        <?php endif; ?>
+                                        <a href="detail.php?id=<?= $t['transaksi_id'] ?>" class="btn btn-outline-info" title="Detail"><i class="bi bi-eye"></i></a>
+                                        <a href="edit.php?id=<?= $t['transaksi_id'] ?>" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                                        <button class="btn btn-outline-danger" onclick="confirmDelete(<?= $t['transaksi_id'] ?>, '<?= htmlspecialchars($t['kode_item'].' - '.$t['merek']) ?>', '<?= formatTanggal($t['tanggal_jual']) ?>')" title="Hapus"><i class="bi bi-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="12" class="text-center py-5">
+                                <td colspan="11" class="text-center py-5">
                                     <div class="text-muted">
                                         <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                         Belum ada transaksi pada periode ini
@@ -236,12 +188,11 @@ include '../includes/header.php';
                             </tr>
                         <?php endif; ?>
                     </tbody>
-                    <tfoot class="table-secondary fw-bold">
+                    <tfoot class="table-light fw-bold">
                         <tr>
-                            <td colspan="8" class="text-end">TOTAL KESELURUHAN (Sesuai Filter)</td>
-                            <td class="text-end"><?= formatRupiah($total_pendapatan) ?></td>
-                            <td class="text-end"><?= formatRupiah($total_modal) ?></td>
-                            <td class="text-end text-success"><?= formatRupiah($total_keuntungan) ?></td>
+                            <td colspan="8" class="text-end text-uppercase">TOTAL KESELURUHAN (Sesuai Filter)</td>
+                            <td class="text-end text-success"><?= formatRupiah($total_pendapatan) ?></td>
+                            <td class="text-end text-muted"><?= formatRupiah($total_modal) ?></td>
                             <td></td>
                         </tr>
                     </tfoot>
@@ -250,7 +201,7 @@ include '../includes/header.php';
             
             <!-- Pagination -->
             <?php if ($totalPages > 1): ?>
-            <div class="p-3 border-top d-flex justify-content-center">
+            <div class="p-3 border-top d-flex justify-content-center bg-light">
                 <nav>
                     <ul class="pagination mb-0">
                         <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
@@ -276,21 +227,21 @@ include '../includes/header.php';
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Konfirmasi Hapus Transaksi</h5>
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Konfirmasi Hapus</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p>Anda yakin ingin menghapus transaksi ini?</p>
-        <ul class="list-group mb-3">
-            <li class="list-group-item"><strong>Barang:</strong> <span id="delBarang"></span></li>
-            <li class="list-group-item"><strong>Tanggal:</strong> <span id="delTanggal"></span></li>
-        </ul>
-        <div class="alert alert-warning mb-0">
-            <strong>Peringatan!</strong> Menghapus transaksi akan mengembalikan status barang menjadi <strong>Di Rak</strong>. Aksi ini tidak dapat dibatalkan.
+        <p class="mb-3">Anda yakin ingin menghapus transaksi ini?</p>
+        <div class="bg-light p-3 rounded mb-3 border">
+            <div class="mb-2"><strong>Produk:</strong> <span id="delProduk" class="text-primary"></span></div>
+            <div><strong>Tanggal:</strong> <span id="delTanggal"></span></div>
+        </div>
+        <div class="alert alert-danger mb-0 py-2 border-0">
+            <i class="bi bi-info-circle-fill me-2"></i>Status produk akan kembali menjadi <strong>Di Rak</strong>.
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer border-0 pt-0">
         <form method="POST" action="hapus.php">
             <?php
             if (empty($_SESSION['csrf_token'])) {
@@ -299,8 +250,8 @@ include '../includes/header.php';
             ?>
             <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
             <input type="hidden" name="id" id="deleteId">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-            <button type="submit" class="btn btn-danger"><i class="bi bi-trash"></i> Ya, Hapus Transaksi</button>
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-danger px-4">Ya, Hapus</button>
         </form>
       </div>
     </div>
@@ -309,9 +260,9 @@ include '../includes/header.php';
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-function confirmDelete(id, barang, tanggal) {
+function confirmDelete(id, produk, tanggal) {
     document.getElementById('deleteId').value = id;
-    document.getElementById('delBarang').innerText = barang;
+    document.getElementById('delProduk').innerText = produk;
     document.getElementById('delTanggal').innerText = tanggal;
     var myModal = new bootstrap.Modal(document.getElementById('deleteModal'));
     myModal.show();

@@ -6,7 +6,7 @@ require_once __DIR__ . '/includes/functions.php';
 $pageTitle = 'Laporan Transaksi';
 
 // Ambil data dari view v_laporan_transaksi, urutkan dari yang terbaru
-$stmt = $pdo->query("SELECT * FROM v_laporan_transaksi ORDER BY tanggal_jual DESC, transaksi_id DESC");
+$stmt = $pdo->query("SELECT * FROM (SELECT t.id AS transaksi_id, t.tanggal_jual, t.created_at, b.kode_item, b.merek, kb.nama_kategori AS kategori, b.ukuran, b.kondisi, t.harga_jual, t.modal, t.keuntungan, t.metode_bayar, t.catatan, u.id AS kasir_id, u.nama AS nama_kasir, s.nama_supplier FROM transaksi t JOIN produk b ON b.id = t.produk_id JOIN kategori_produk kb ON kb.id = b.kategori_id JOIN users u ON u.id = t.kasir_id JOIN suppliers s ON s.id = b.supplier_id) AS v_laporan_transaksi ORDER BY tanggal_jual DESC, transaksi_id DESC");
 $laporan = $stmt->fetchAll();
 
 include __DIR__ . '/includes/header.php';
@@ -14,7 +14,7 @@ include __DIR__ . '/includes/header.php';
 <div class="card">
     <div class="card-header">
         <h2>Laporan Transaksi Penjualan</h2>
-        <p class="muted">Detail seluruh transaksi penjualan barang dan informasi profit.</p>
+        <p class="muted">Detail seluruh transaksi penjualan produk dan informasi profit.</p>
     </div>
     <div class="card-body">
         <div style="overflow-x: auto;">

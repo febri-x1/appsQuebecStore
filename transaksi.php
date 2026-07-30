@@ -15,47 +15,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $catatan = trim($_POST['catatan'] ?? '');
 
     if ($kode_item) {
-        // Cari barang berdasarkan kode_item
+        // Cari produk berdasarkan kode_item
         $stmt = $pdo->prepare("
             SELECT b.id, b.harga_jual, b.modal, b.merek, kb.nama_kategori AS kategori, b.status 
-            FROM barang b 
-            JOIN kategori_barang kb ON b.kategori_id = kb.id
+            FROM produk b 
+            JOIN kategori_produk kb ON b.kategori_id = kb.id
             WHERE b.kode_item = ?
         ");
         $stmt->execute([$kode_item]);
-        $barang = $stmt->fetch();
+        $produk = $stmt->fetch();
 
-        if ($barang) {
-            if ($barang['status'] === 'di_rak') {
+        if ($produk) {
+            if ($produk['status'] === 'di_rak') {
                 try {
                     $pdo->beginTransaction();
 
                     // 1. Catat transaksi penjualan
                     $stmtTrans = $pdo->prepare("
-                        INSERT INTO transaksi (barang_id, kasir_id, harga_jual, modal, metode_bayar, catatan, tanggal_jual)
+                        INSERT INTO transaksi (produk_id, kasir_id, harga_jual, modal, metode_bayar, catatan, tanggal_jual)
                         VALUES (?, ?, ?, ?, ?, ?, CURDATE())
                     ");
                     $stmtTrans->execute([
-                        $barang['id'],
+                        $produk['id'],
                         current_user()['id'],
-                        $barang['harga_jual'],
-                        $barang['modal'],
+                        $produk['harga_jual'],
+                        $produk['modal'],
                         $metode_bayar,
                         $catatan
                     ]);
 
-                    // 2. Ubah status barang menjadi 'terjual'
-                    $stmtUpdate = $pdo->prepare("UPDATE barang SET status = 'terjual' WHERE id = ?");
-                    $stmtUpdate->execute([$barang['id']]);
+                    // 2. Ubah status produk menjadi 'terjual'
+                    $stmtUpdate = $pdo->prepare("UPDATE produk SET status = 'terjual' WHERE id = ?");
+                    $stmtUpdate->execute([$produk['id']]);
 
                     $pdo->commit();
-                    flash('success', 'Transaksi berhasil: ' . $barang['merek'] . ' (' . ucwords(str_replace('_', ' ', $barang['kategori'])) . ') laku terjual.');
+                    flash('success', 'Transaksi berhasil: ' . $produk['merek'] . ' (' . ucwords(str_replace('_', ' ', $produk['kategori'])) . ') laku terjual.');
                 } catch (Exception $e) {
                     $pdo->rollBack();
                     flash('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
                 }
             } else {
-                flash('error', 'Transaksi gagal: Barang dengan kode "' . clean($kode_item) . '" tidak dapat dijual karena berstatus "' . clean($barang['status']) . '".');
+                flash('error', 'Transaksi gagal: Produk dengan kode "' . clean($kode_item) . '" tidak dapat dijual karena berstatus "' . clean($produk['status']) . '".');
             }
         } else {
             flash('error', 'Item dengan kode "' . clean($kode_item) . '" tidak ditemukan di database.');
@@ -73,7 +73,7 @@ $pageTitle = 'Kasir / Transaksi Baru';
 $stmtRecent = $pdo->query("
     SELECT t.id, b.kode_item, b.merek, t.harga_jual, t.metode_bayar, t.created_at
     FROM transaksi t
-    JOIN barang b ON t.barang_id = b.id
+    JOIN produk b ON t.produk_id = b.id
     ORDER BY t.created_at DESC
     LIMIT 5
 ");

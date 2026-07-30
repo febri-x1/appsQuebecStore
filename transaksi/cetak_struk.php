@@ -9,12 +9,12 @@ if (!isset($_GET['id'])) {
 
 $id = (int)$_GET['id'];
 
-// Ambil data transaksi beserta detail barang dan nama kasir
+// Ambil data transaksi beserta detail produk dan nama kasir
 $stmt = $pdo->prepare("
     SELECT t.*, b.kode_item, b.merek, kb.nama_kategori AS kategori, b.ukuran, u.nama as nama_kasir
     FROM transaksi t
-    JOIN barang b ON t.barang_id = b.id
-    JOIN kategori_barang kb ON b.kategori_id = kb.id
+    JOIN produk b ON t.produk_id = b.id
+    JOIN kategori_produk kb ON b.kategori_id = kb.id
     JOIN users u ON t.kasir_id = u.id
     WHERE t.id = ?
 ");
@@ -163,7 +163,7 @@ if (!$trx) {
     </table>
     <hr>
     <div class="text-center mt-2" style="font-size: 10px;">
-        Terima kasih atas kunjungan Anda.<br>Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.
+        Terima kasih atas kunjungan Anda.<br>Produk yang sudah dibeli tidak dapat ditukar/dikembalikan.
     </div>
 </body>
 

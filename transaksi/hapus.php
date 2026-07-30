@@ -21,7 +21,7 @@ if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
 $id = (int)($_POST['id'] ?? 0);
 
 // Validasi transaksi ada dan dibuat hari ini
-$stmt = $pdo->prepare("SELECT barang_id, created_at FROM transaksi WHERE id = ?");
+$stmt = $pdo->prepare("SELECT produk_id, created_at FROM transaksi WHERE id = ?");
 $stmt->execute([$id]);
 $t = $stmt->fetch();
 
@@ -39,16 +39,16 @@ if (!$isToday) {
 try {
     $pdo->beginTransaction();
 
-    // 1. Kembalikan status barang
-    $stmtBarang = $pdo->prepare("UPDATE barang SET status = 'di_rak' WHERE id = ?");
-    $stmtBarang->execute([$t['barang_id']]);
+    // 1. Kembalikan status produk
+    $stmtProduk = $pdo->prepare("UPDATE produk SET status = 'di_rak' WHERE id = ?");
+    $stmtProduk->execute([$t['produk_id']]);
 
     // 2. Hapus transaksi
     $stmtDel = $pdo->prepare("DELETE FROM transaksi WHERE id = ?");
     $stmtDel->execute([$id]);
 
     $pdo->commit();
-    flash('success', 'Transaksi berhasil dihapus dan status barang dikembalikan menjadi Di Rak.');
+    flash('success', 'Transaksi berhasil dihapus dan status produk dikembalikan menjadi Di Rak.');
 } catch (Exception $e) {
     $pdo->rollBack();
     flash('error', 'Gagal menghapus transaksi: ' . $e->getMessage());

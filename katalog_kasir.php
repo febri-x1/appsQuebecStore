@@ -18,7 +18,7 @@ $offset = ($page - 1) * $limit;
 $search = $_GET['search'] ?? '';
 $kategori_filter = $_GET['kategori'] ?? '';
 
-// Hanya ambil barang yang statusnya 'di_rak' 
+// Hanya ambil produk yang statusnya 'di_rak' 
 $where = ["b.status = 'di_rak'"];
 $params = [];
 
@@ -35,22 +35,22 @@ if ($kategori_filter !== '') {
 
 $whereClause = "WHERE " . implode(" AND ", $where);
 
-$stmtCount = $pdo->prepare("SELECT COUNT(*) FROM barang b $whereClause");
+$stmtCount = $pdo->prepare("SELECT COUNT(*) FROM produk b $whereClause");
 $stmtCount->execute($params);
 $totalData = $stmtCount->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
 $sql = "SELECT b.*, kb.nama_kategori AS kategori 
-        FROM barang b 
-        LEFT JOIN kategori_barang kb ON b.kategori_id = kb.id 
+        FROM produk b 
+        LEFT JOIN kategori_produk kb ON b.kategori_id = kb.id 
         $whereClause 
         ORDER BY b.id DESC LIMIT $limit OFFSET $offset";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
-$barangList = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$produkList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Ambil data kategori untuk filter
-$kategoriList = $pdo->query("SELECT id, nama_kategori FROM kategori_barang ORDER BY nama_kategori ASC")->fetchAll();
+$kategoriList = $pdo->query("SELECT id, nama_kategori FROM kategori_produk ORDER BY nama_kategori ASC")->fetchAll();
 
 include 'includes/header.php';
 ?>
@@ -133,8 +133,8 @@ include 'includes/header.php';
 
     <!-- Product Grid -->
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 g-4 mb-4">
-        <?php if (count($barangList) > 0): ?>
-            <?php foreach ($barangList as $b):
+        <?php if (count($produkList) > 0): ?>
+            <?php foreach ($produkList as $b):
                 $fotoUrl = !empty($b['foto']) ? $b['foto'] : 'assets/img/no-photo.png';
 
                 // Menentukan class kondisi

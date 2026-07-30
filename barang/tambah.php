@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     redirect('barang/index.php');
 }
 
-$pageTitle = 'Tambah Barang';
+$pageTitle = 'Tambah Produk';
 include '../includes/header.php';
 ?>
 
@@ -86,7 +86,7 @@ include '../includes/header.php';
 <div class="container-fluid mt-4 mb-5">
     <div class="card shadow-sm">
         <div class="card-header bg-white">
-            <h4 class="mb-0">Tambah Barang Baru (Restock)</h4>
+            <h4 class="mb-0">Tambah Produk Baru (Restock)</h4>
         </div>
         <div class="card-body">
             <form method="POST" enctype="multipart/form-data" id="formTambah">
@@ -198,7 +198,7 @@ include '../includes/header.php';
                 <hr>
                 <div class="d-flex justify-content-end gap-2">
                     <a href="index.php" class="btn btn-secondary">Batal</a>
-                    <button type="submit" class="btn btn-primary" id="btnSubmit">Simpan Barang</button>
+                    <button type="submit" class="btn btn-primary" id="btnSubmit">Simpan Produk</button>
                 </div>
             </form>
         </div>

@@ -68,3 +68,15 @@ function next_invoice_number(PDO $pdo)
 
     return $prefix . str_pad((string) $number, 4, '0', STR_PAD_LEFT);
 }
+
+function generateKodeItem(PDO $pdo)
+{
+    $prefix = 'QS-' . date('Y') . '-';
+    $stmt = $pdo->prepare("SELECT kode_item FROM produk WHERE kode_item LIKE ? ORDER BY id DESC LIMIT 1");
+    $stmt->execute([$prefix . '%']);
+    $last = $stmt->fetchColumn();
+    $number = $last ? ((int) substr($last, -5)) + 1 : 1;
+
+    return $prefix . str_pad((string) $number, 5, '0', STR_PAD_LEFT);
+}
+

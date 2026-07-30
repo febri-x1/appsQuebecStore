@@ -10,24 +10,24 @@ if (current_user()['role'] !== 'pemilik') {
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     flash('error', 'Metode tidak diizinkan.');
-    redirect('barang/index.php');
+    redirect('produk/index.php');
 }
 
 $id = (int)($_POST['id'] ?? 0);
 
-// Cek barang dan status
-$stmt = $pdo->prepare("SELECT id, status, foto FROM barang WHERE id = ?");
+// Cek produk dan status
+$stmt = $pdo->prepare("SELECT id, status, foto FROM produk WHERE id = ?");
 $stmt->execute([$id]);
 $item = $stmt->fetch();
 
 if (!$item) {
-    flash('error', 'Barang tidak ditemukan.');
-    redirect('barang/index.php');
+    flash('error', 'Produk tidak ditemukan.');
+    redirect('produk/index.php');
 }
 
 if ($item['status'] === 'terjual') {
-    flash('error', 'Barang yang sudah terjual tidak dapat dihapus.');
-    redirect('barang/index.php');
+    flash('error', 'Produk yang sudah terjual tidak dapat dihapus.');
+    redirect('produk/index.php');
 }
 
 // Hapus foto jika ada
@@ -36,12 +36,12 @@ if (!empty($item['foto']) && file_exists('../' . $item['foto'])) {
 }
 
 // Hapus dari database
-$delStmt = $pdo->prepare("DELETE FROM barang WHERE id = ? AND status != 'terjual'");
+$delStmt = $pdo->prepare("DELETE FROM produk WHERE id = ? AND status != 'terjual'");
 if ($delStmt->execute([$id])) {
-    flash('success', 'Barang berhasil dihapus.');
+    flash('success', 'Produk berhasil dihapus.');
 } else {
-    flash('error', 'Gagal menghapus barang.');
+    flash('error', 'Gagal menghapus produk.');
 }
 
-redirect('barang/index.php');
+redirect('produk/index.php');
 

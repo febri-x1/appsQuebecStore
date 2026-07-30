@@ -17,18 +17,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('kategori/index.php');
     }
 
-    // Cek apakah kategori masih dipakai di tabel barang
-    $stmtCek = $pdo->prepare("SELECT COUNT(*) FROM barang WHERE kategori_id = ?");
+    // Cek apakah kategori masih dipakai di tabel produk
+    $stmtCek = $pdo->prepare("SELECT COUNT(*) FROM produk WHERE kategori_id = ?");
     $stmtCek->execute([$id]);
     $count = $stmtCek->fetchColumn();
 
     if ($count > 0) {
-        flash('error', "Gagal menghapus! Kategori ini masih digunakan oleh $count barang.");
+        flash('error', "Gagal menghapus! Kategori ini masih digunakan oleh $count produk.");
         redirect('kategori/index.php');
     }
 
     try {
-        $stmtDelete = $pdo->prepare("DELETE FROM kategori_barang WHERE id = ?");
+        $stmtDelete = $pdo->prepare("DELETE FROM kategori_produk WHERE id = ?");
         $stmtDelete->execute([$id]);
         flash('success', 'Kategori berhasil dihapus.');
     } catch (PDOException $e) {
