@@ -3,7 +3,7 @@ require_once '../config/database.php';
 require_once '../includes/auth_check.php'; // hanya role 'pemilik'
 require_once '../includes/functions.php';
 
-if (current_user()['role'] !== 'pemilik') {
+if (current_user()['role'] !== 'admin') {
     flash('error', 'Akses ditolak.');
     redirect('dashboard.php');
 }
@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $id = (int)($_POST['id'] ?? 0);
 
 // Cek produk dan status
-$stmt = $pdo->prepare("SELECT id, status, foto FROM produk WHERE id = ?");
+$stmt = $pdo->prepare("SELECT id, status, foto_produk, qty FROM produk WHERE id = ?");
 $stmt->execute([$id]);
 $item = $stmt->fetch();
 
@@ -25,18 +25,21 @@ if (!$item) {
     redirect('produk/index.php');
 }
 
-if ($item['status'] === 'terjual') {
-    flash('error', 'Produk yang sudah terjual tidak dapat dihapus.');
+// Cek apakah produk pernah ditransaksikan
+$cekTrx = $pdo->prepare("SELECT id FROM transaksi WHERE produk_id = ? LIMIT 1");
+$cekTrx->execute([$id]);
+if ($cekTrx->fetch()) {
+    flash('error', 'Produk ini tidak dapat dihapus karena sudah memiliki riwayat transaksi.');
     redirect('produk/index.php');
 }
 
 // Hapus foto jika ada
-if (!empty($item['foto']) && file_exists('../' . $item['foto'])) {
-    unlink('../' . $item['foto']);
+if (!empty($item['foto_produk']) && file_exists('../' . $item['foto_produk'])) {
+    unlink('../' . $item['foto_produk']);
 }
 
 // Hapus dari database
-$delStmt = $pdo->prepare("DELETE FROM produk WHERE id = ? AND status != 'terjual'");
+$delStmt = $pdo->prepare("DELETE FROM produk WHERE id = ?");
 if ($delStmt->execute([$id])) {
     flash('success', 'Produk berhasil dihapus.');
 } else {

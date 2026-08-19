@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/auth_check.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
-if ((current_user()['role'] ?? '') !== 'pemilik') {
+if ((current_user()['role'] ?? '') !== 'admin') {
     flash('error', 'Akses hanya untuk pemilik.');
     redirect('dashboard.php');
 }

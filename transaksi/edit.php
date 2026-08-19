@@ -3,7 +3,7 @@ require_once '../config/database.php';
 require_once '../includes/auth_check.php';
 require_once '../includes/functions.php';
 
-if (current_user()['role'] !== 'pemilik') {
+if (current_user()['role'] !== 'kasir') {
     flash('error', 'Akses ditolak. Halaman ini hanya untuk pemilik.');
     redirect('dashboard.php');
 }
@@ -69,12 +69,16 @@ include '../includes/header.php';
         <div class="card-body bg-light rounded-bottom">
             <div class="alert alert-info mb-4 border-0 shadow-sm">
                 <div class="row">
-                    <div class="col-sm-6">
+                    <div class="col-sm-4">
                         <small class="text-muted d-block text-uppercase fw-bold" style="letter-spacing:1px; font-size:0.7rem;">Produk</small>
                         <strong><?= htmlspecialchars($trx['kode_item']) ?> - <?= htmlspecialchars($trx['merek']) ?> (<?= htmlspecialchars($trx['ukuran']) ?>)</strong>
                     </div>
-                    <div class="col-sm-6 text-sm-end mt-2 mt-sm-0">
-                        <small class="text-muted d-block text-uppercase fw-bold" style="letter-spacing:1px; font-size:0.7rem;">Modal (Fix)</small>
+                    <div class="col-sm-4 text-sm-center mt-2 mt-sm-0">
+                        <small class="text-muted d-block text-uppercase fw-bold" style="letter-spacing:1px; font-size:0.7rem;">Jumlah (Fix)</small>
+                        <strong><?= htmlspecialchars($trx['qty']) ?> Pcs</strong>
+                    </div>
+                    <div class="col-sm-4 text-sm-end mt-2 mt-sm-0">
+                        <small class="text-muted d-block text-uppercase fw-bold" style="letter-spacing:1px; font-size:0.7rem;">Modal Satuan (Fix)</small>
                         <strong><?= formatRupiah($trx['modal']) ?></strong>
                     </div>
                 </div>
@@ -109,7 +113,7 @@ include '../includes/header.php';
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label fw-bold text-muted small">Harga Jual (Rp)</label>
+                        <label class="form-label fw-bold text-muted small">Harga Jual Satuan (Rp)</label>
                         <input type="number" name="harga_jual" class="form-control text-success fw-bold" step="0.01" value="<?= htmlspecialchars($trx['harga_jual']) ?>" required>
                         <div class="form-text text-warning"><i class="bi bi-info-circle"></i> Mengubah harga jual akan otomatis menghitung ulang keuntungan.</div>
                     </div>

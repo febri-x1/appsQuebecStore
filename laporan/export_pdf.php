@@ -3,7 +3,7 @@ require_once '../config/database.php';
 require_once '../includes/auth_check.php';
 require_once '../includes/functions.php';
 
-if (!in_array(current_user()['role'], ['pemilik', 'admin', 'kasir'])) {
+if (!in_array(current_user()['role'], ['pemilik', 'admin'])) {
     die('Akses ditolak');
 }
 

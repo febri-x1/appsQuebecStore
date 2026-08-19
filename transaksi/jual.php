@@ -17,13 +17,13 @@ if (empty($_SESSION['csrf_token'])) {
 // Ambil beberapa produk terbaru yang masih di rak untuk Quick Select
 $stmtProduk = $pdo->query("
     SELECT b.id, b.kode_item, b.merek, kb.nama_kategori AS kategori, 
-           b.ukuran, b.warna, b.kondisi, b.modal, b.harga_jual, 
+           b.ukuran, b.warna, b.kondisi, b.modal, b.harga_jual, b.qty,
            b.foto_produk AS foto, DATEDIFF(CURDATE(), b.tanggal_masuk) AS hari_di_rak, 
            s.nama_supplier
     FROM produk b
     JOIN kategori_produk kb ON b.kategori_id = kb.id
     JOIN suppliers s ON b.supplier_id = s.id
-    WHERE b.status = 'di_rak'
+    WHERE b.qty > 0 AND b.status = 'aktif'
     ORDER BY b.tanggal_masuk DESC
     LIMIT 12
 ");
@@ -163,7 +163,7 @@ include '../includes/header.php';
                     <?php endforeach; ?>
                 </div>
                 <?php if (count($produkTersedia) == 0): ?>
-                    <div class="alert alert-info text-center">Belum ada produk yang tersedia di rak.</div>
+                    <div class="alert alert-info text-center">Belum ada produk aktif dengan stok tersedia.</div>
                 <?php endif; ?>
             </div>
 
@@ -188,11 +188,15 @@ include '../includes/header.php';
 
                                 <div class="p-3 bg-light rounded">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <span>Target Jual:</span>
+                                        <span>Stok Tersedia:</span>
+                                        <span class="text-primary fw-bold" id="infoStok">0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span>Target Jual (Satuan):</span>
                                         <span class="price-display" id="infoHargaJual">Rp 0</span>
                                     </div>
                                     <div class="d-flex justify-content-between align-items-center text-muted">
-                                        <span>Modal Item:</span>
+                                        <span>Modal Item (Satuan):</span>
                                         <span id="infoModal">Rp 0</span>
                                     </div>
                                 </div>
@@ -220,10 +224,16 @@ include '../includes/header.php';
                             <input type="text" class="form-control bg-light fw-bold" id="formProdukNama" readonly placeholder="Belum ada produk dipilih">
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Harga Jual Aktual (Rp) <span class="text-danger">*</span></label>
-                            <input type="number" id="inputHargaJual" class="form-control form-control-lg text-end" required min="0" step="1000">
-                            <small class="text-muted d-block mt-1">Kasir dapat mengubah harga jika ada penawaran/diskon khusus.</small>
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Qty Pembelian <span class="text-danger">*</span></label>
+                                <input type="number" id="inputQty" class="form-control form-control-lg text-center" value="1" min="1" required>
+                                <small class="text-muted d-block mt-1">Maks: <span id="maxQtyLabel">-</span></small>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold">Harga Jual Satuan (Rp) <span class="text-danger">*</span></label>
+                                <input type="number" id="inputHargaJual" class="form-control form-control-lg text-end" required min="0" step="1000">
+                            </div>
                         </div>
 
                         <div class="mb-4">
@@ -257,18 +267,18 @@ include '../includes/header.php';
 
                         <!-- Preview Box -->
                         <div class="preview-box mb-4">
-                            <h6 class="text-secondary border-bottom pb-2 mb-3"><i class="bi bi-calculator"></i> Preview Transaksi</h6>
+                            <h6 class="text-secondary border-bottom pb-2 mb-3"><i class="bi bi-calculator"></i> Preview Transaksi (Total)</h6>
                             <div class="d-flex justify-content-between mb-2">
-                                <span>Harga Jual</span>
+                                <span>Total Harga Jual</span>
                                 <strong id="previewJual">Rp 0</strong>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Modal</span>
+                                <span class="text-muted">Total Modal</span>
                                 <strong class="text-muted" id="previewModal">Rp 0</strong>
                             </div>
                             <hr class="my-2">
                             <div class="d-flex justify-content-between align-items-center">
-                                <span>Keuntungan</span>
+                                <span>Total Keuntungan</span>
                                 <strong id="previewUntung" class="fs-5">Rp 0</strong>
                             </div>
                             <div id="warningMargin" class="text-danger small mt-2 fw-bold" style="display:none;">
@@ -371,7 +381,7 @@ include '../includes/header.php';
                             div.innerHTML = `
                             <strong>${item.kode_item}</strong> - ${item.merek} 
                             <span class="badge bg-secondary ms-2">${item.kategori.replace('_', ' ').toUpperCase()}</span>
-                            <div class="small text-muted mt-1">Target Jual: ${formatRp(item.harga_jual)}</div>
+                            <div class="small text-muted mt-1">Stok: ${item.qty} | Jual: ${formatRp(item.harga_jual)}</div>
                         `;
                             div.onclick = () => selectItem(item);
                             suggestionBox.appendChild(div);
@@ -427,6 +437,8 @@ include '../includes/header.php';
 
         document.getElementById('infoHargaJual').innerText = formatRp(item.harga_jual);
         document.getElementById('infoModal').innerText = formatRp(item.modal);
+        document.getElementById('infoStok').innerText = item.qty;
+        document.getElementById('maxQtyLabel').innerText = item.qty;
 
         kartuInfo.style.display = 'block';
         document.getElementById('gridProdukTersedia').style.display = 'none';
@@ -437,7 +449,11 @@ include '../includes/header.php';
 
         const inputHarga = document.getElementById('inputHargaJual');
         inputHarga.value = item.harga_jual;
-        inputHarga.focus();
+        
+        const inputQty = document.getElementById('inputQty');
+        inputQty.value = 1;
+        inputQty.max = item.qty;
+        inputQty.focus();
 
         formKonfirmasi.classList.add('active');
         updatePreview();
@@ -445,23 +461,37 @@ include '../includes/header.php';
 
     // --- 3. Realtime Preview Kalkulasi ---
     const inputHargaJual = document.getElementById('inputHargaJual');
+    const inputQty = document.getElementById('inputQty');
+    
     inputHargaJual.addEventListener('input', updatePreview);
+    inputQty.addEventListener('input', () => {
+        // limit by max
+        if (currentItem && parseInt(inputQty.value) > parseInt(currentItem.qty)) {
+            inputQty.value = currentItem.qty;
+        }
+        updatePreview();
+        hitungKembalian();
+    });
 
     function updatePreview() {
         if (!currentItem) return;
 
+        const qty = parseInt(inputQty.value) || 1;
         const hjual = parseFloat(inputHargaJual.value) || 0;
         const modal = parseFloat(currentItem.modal);
-        const untung = hjual - modal;
+        
+        const totalJual = hjual * qty;
+        const totalModal = modal * qty;
+        const untung = totalJual - totalModal;
 
-        document.getElementById('previewJual').innerText = formatRp(hjual);
-        document.getElementById('previewModal').innerText = formatRp(modal);
+        document.getElementById('previewJual').innerText = formatRp(totalJual);
+        document.getElementById('previewModal').innerText = formatRp(totalModal);
 
         const preUntung = document.getElementById('previewUntung');
         preUntung.innerText = formatRp(untung);
 
         const warning = document.getElementById('warningMargin');
-        if (untung < 0) {
+        if (hjual < modal) {
             preUntung.className = 'fs-5 text-danger';
             warning.style.display = 'block';
         } else {
@@ -477,9 +507,11 @@ include '../includes/header.php';
     const radioMetode = document.querySelectorAll('input[name="metode_bayar"]');
 
     function hitungKembalian() {
+        const qty = parseInt(document.getElementById('inputQty').value) || 1;
         const hjual = parseFloat(inputHargaJual.value) || 0;
+        const totalJual = hjual * qty;
         const uang = parseFloat(inputUangDiterima.value) || 0;
-        const kembalian = uang - hjual;
+        const kembalian = uang - totalJual;
 
         if (uang > 0 && kembalian >= 0) {
             labelKembalian.innerText = formatRp(kembalian);
@@ -535,6 +567,7 @@ include '../includes/header.php';
         const formData = new URLSearchParams();
         formData.append('csrf_token', document.getElementById('csrf_token').value);
         formData.append('produk_id', document.getElementById('produk_id').value);
+        formData.append('qty', document.getElementById('inputQty').value);
         formData.append('harga_jual', document.getElementById('inputHargaJual').value);
         formData.append('metode_bayar', document.querySelector('input[name="metode_bayar"]:checked').value);
         formData.append('catatan', document.getElementById('inputCatatan').value);
@@ -558,13 +591,15 @@ include '../includes/header.php';
                 currentTransaksiId = data.data.transaksi_id;
                 document.getElementById('suksesNamaProduk').innerText = `${data.data.merek} - ${currentItem.kategori.replace('_', ' ').toUpperCase()} ${currentItem.ukuran}`;
                 document.getElementById('suksesKodeProduk').innerText = data.data.kode_item;
-                document.getElementById('suksesTerjual').innerText = formatRp(data.data.harga_jual);
+                document.getElementById('suksesTerjual').innerText = `${data.data.qty}x @ ${formatRp(data.data.harga_jual)} = ${formatRp(data.data.harga_jual * data.data.qty)}`;
                 document.getElementById('suksesMetode').innerText = data.data.metode_bayar.toUpperCase();
 
                 if (data.data.metode_bayar === 'tunai') {
+                    const qty = parseInt(data.data.qty) || 1;
                     const hjual = parseFloat(data.data.harga_jual) || 0;
+                    const totalJual = qty * hjual;
                     const uang = parseFloat(document.getElementById('inputUangDiterima').value) || 0;
-                    const kembalian = uang > hjual ? uang - hjual : 0;
+                    const kembalian = uang > totalJual ? uang - totalJual : 0;
                     document.getElementById('suksesKembalian').innerText = formatRp(kembalian);
                     document.getElementById('rowSuksesKembalian').style.display = 'flex';
                 } else {

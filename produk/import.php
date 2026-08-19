@@ -6,7 +6,7 @@ require '../../vendor/autoload.php';
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
-if (current_user()['role'] !== 'pemilik') {
+if (current_user()['role'] !== 'admin') {
     flash('error', 'Akses ditolak.');
     redirect('dashboard.php');
 }

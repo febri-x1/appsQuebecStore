@@ -3,7 +3,7 @@ require_once '../config/database.php';
 require_once '../includes/auth_check.php';
 require_once '../includes/functions.php';
 
-if (current_user()['role'] !== 'pemilik') {
+if (current_user()['role'] !== 'kasir') {
     flash('error', 'Akses ditolak. Halaman ini hanya untuk pemilik.');
     redirect('dashboard.php');
 }
@@ -43,13 +43,13 @@ if ($search !== '') {
 $whereClause = "WHERE " . implode(" AND ", $where);
 
 // Base count query
-$stmtCount = $pdo->prepare("SELECT COUNT(*) FROM (SELECT t.id AS transaksi_id, t.tanggal_jual, t.created_at, b.kode_item, b.merek, kb.nama_kategori AS kategori, b.ukuran, b.kondisi, t.harga_jual, t.modal, t.keuntungan, t.metode_bayar, t.catatan, u.id AS kasir_id, u.nama AS nama_kasir, s.nama_supplier FROM transaksi t JOIN produk b ON b.id = t.produk_id JOIN kategori_produk kb ON kb.id = b.kategori_id JOIN users u ON u.id = t.kasir_id JOIN suppliers s ON s.id = b.supplier_id) AS v_laporan_transaksi $whereClause");
+$stmtCount = $pdo->prepare("SELECT COUNT(*) FROM (SELECT t.id AS transaksi_id, t.tanggal_jual, t.created_at, b.kode_item, b.merek, kb.nama_kategori AS kategori, b.ukuran, b.kondisi, t.qty, t.harga_jual, t.modal, t.keuntungan, t.metode_bayar, t.catatan, u.id AS kasir_id, u.nama AS nama_kasir, s.nama_supplier FROM transaksi t JOIN produk b ON b.id = t.produk_id JOIN kategori_produk kb ON kb.id = b.kategori_id JOIN users u ON u.id = t.kasir_id JOIN suppliers s ON s.id = b.supplier_id) AS v_laporan_transaksi $whereClause");
 $stmtCount->execute($params);
 $totalData = $stmtCount->fetchColumn();
 $totalPages = ceil($totalData / $limit);
 
 // Sum query for Footer
-$stmtSum = $pdo->prepare("SELECT SUM(harga_jual) as total_pendapatan, SUM(modal) as total_modal FROM (SELECT t.id AS transaksi_id, t.tanggal_jual, t.created_at, b.kode_item, b.merek, kb.nama_kategori AS kategori, b.ukuran, b.kondisi, t.harga_jual, t.modal, t.keuntungan, t.metode_bayar, t.catatan, u.id AS kasir_id, u.nama AS nama_kasir, s.nama_supplier FROM transaksi t JOIN produk b ON b.id = t.produk_id JOIN kategori_produk kb ON kb.id = b.kategori_id JOIN users u ON u.id = t.kasir_id JOIN suppliers s ON s.id = b.supplier_id) AS v_laporan_transaksi $whereClause");
+$stmtSum = $pdo->prepare("SELECT SUM(harga_jual * qty) as total_pendapatan, SUM(modal * qty) as total_modal FROM (SELECT t.id AS transaksi_id, t.tanggal_jual, t.created_at, b.kode_item, b.merek, kb.nama_kategori AS kategori, b.ukuran, b.kondisi, t.qty, t.harga_jual, t.modal, t.keuntungan, t.metode_bayar, t.catatan, u.id AS kasir_id, u.nama AS nama_kasir, s.nama_supplier FROM transaksi t JOIN produk b ON b.id = t.produk_id JOIN kategori_produk kb ON kb.id = b.kategori_id JOIN users u ON u.id = t.kasir_id JOIN suppliers s ON s.id = b.supplier_id) AS v_laporan_transaksi $whereClause");
 $stmtSum->execute($params);
 $sums = $stmtSum->fetch();
 
@@ -57,7 +57,7 @@ $total_pendapatan = $sums['total_pendapatan'] ?? 0;
 $total_modal = $sums['total_modal'] ?? 0;
 
 // Fetch data
-$sql = "SELECT * FROM (SELECT t.id AS transaksi_id, t.tanggal_jual, t.created_at, b.kode_item, b.merek, kb.nama_kategori AS kategori, b.ukuran, b.kondisi, t.harga_jual, t.modal, t.keuntungan, t.metode_bayar, t.catatan, u.id AS kasir_id, u.nama AS nama_kasir, s.nama_supplier FROM transaksi t JOIN produk b ON b.id = t.produk_id JOIN kategori_produk kb ON kb.id = b.kategori_id JOIN users u ON u.id = t.kasir_id JOIN suppliers s ON s.id = b.supplier_id) AS v_laporan_transaksi $whereClause ORDER BY tanggal_jual DESC, transaksi_id DESC LIMIT $limit OFFSET $offset";
+$sql = "SELECT * FROM (SELECT t.id AS transaksi_id, t.tanggal_jual, t.created_at, b.kode_item, b.merek, kb.nama_kategori AS kategori, b.ukuran, b.kondisi, t.qty, t.harga_jual, t.modal, t.keuntungan, t.metode_bayar, t.catatan, u.id AS kasir_id, u.nama AS nama_kasir, s.nama_supplier FROM transaksi t JOIN produk b ON b.id = t.produk_id JOIN kategori_produk kb ON kb.id = b.kategori_id JOIN users u ON u.id = t.kasir_id JOIN suppliers s ON s.id = b.supplier_id) AS v_laporan_transaksi $whereClause ORDER BY tanggal_jual DESC, transaksi_id DESC LIMIT $limit OFFSET $offset";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $transaksiList = $stmt->fetchAll();
@@ -133,8 +133,9 @@ include '../includes/header.php';
                             <th>Kondisi</th>
                             <th>Kasir</th>
                             <th>Metode Bayar</th>
-                            <th class="text-end">Harga Jual</th>
-                            <th class="text-end">Modal</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Harga Jual (Total)</th>
+                            <th class="text-end">Modal (Total)</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -166,8 +167,9 @@ include '../includes/header.php';
                                         <span class="badge bg-info text-dark">Transfer</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="text-end fw-bold text-success"><?= formatRupiah($t['harga_jual']) ?></td>
-                                <td class="text-end text-muted"><?= formatRupiah($t['modal']) ?></td>
+                                <td class="text-center fw-bold text-primary"><?= htmlspecialchars($t['qty']) ?></td>
+                                <td class="text-end fw-bold text-success"><?= formatRupiah($t['harga_jual'] * $t['qty']) ?></td>
+                                <td class="text-end text-muted"><?= formatRupiah($t['modal'] * $t['qty']) ?></td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
                                         <a href="detail.php?id=<?= $t['transaksi_id'] ?>" class="btn btn-outline-info" title="Detail"><i class="bi bi-eye"></i></a>
@@ -190,7 +192,7 @@ include '../includes/header.php';
                     </tbody>
                     <tfoot class="table-light fw-bold">
                         <tr>
-                            <td colspan="8" class="text-end text-uppercase">TOTAL KESELURUHAN (Sesuai Filter)</td>
+                            <td colspan="9" class="text-end text-uppercase">TOTAL KESELURUHAN (Sesuai Filter)</td>
                             <td class="text-end text-success"><?= formatRupiah($total_pendapatan) ?></td>
                             <td class="text-end text-muted"><?= formatRupiah($total_modal) ?></td>
                             <td></td>
@@ -238,7 +240,7 @@ include '../includes/header.php';
             <div><strong>Tanggal:</strong> <span id="delTanggal"></span></div>
         </div>
         <div class="alert alert-danger mb-0 py-2 border-0">
-            <i class="bi bi-info-circle-fill me-2"></i>Status produk akan kembali menjadi <strong>Di Rak</strong>.
+            <i class="bi bi-info-circle-fill me-2"></i>Stok produk akan dikembalikan.
         </div>
       </div>
       <div class="modal-footer border-0 pt-0">

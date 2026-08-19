@@ -6,7 +6,7 @@ require '../../vendor/autoload.php';
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
-if (current_user()['role'] !== 'pemilik') {
+if (current_user()['role'] !== 'admin') {
     die('Akses ditolak');
 }
 

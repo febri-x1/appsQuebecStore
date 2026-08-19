@@ -3,7 +3,7 @@ require_once '../config/database.php';
 require_once '../includes/auth_check.php';
 require_once '../includes/functions.php';
 
-if (current_user()['role'] !== 'pemilik') {
+if (current_user()['role'] !== 'admin') {
     flash('error', 'Akses ditolak.');
     redirect('dashboard.php');
 }
@@ -45,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $keterangan_sumber = sanitizeInput($_POST['keterangan_sumber']);
     $modal = (float)$_POST['modal'];
     $harga_jual = (float)$_POST['harga_jual'];
+    $qty = (int)$_POST['qty'];
     $status = sanitizeInput($_POST['status']);
     
     // Foto Handling
@@ -89,9 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
     }
 
-    $stmt = $pdo->prepare('UPDATE produk SET supplier_id=?, merek=?, kategori_id=?, ukuran=?, warna=?, bahan=?, kondisi=?, deskripsi=?, foto_produk=?, modal=?, harga_jual=?, status=?, sumber_barang=?, keterangan_sumber=? WHERE id=?');
+    $stmt = $pdo->prepare('UPDATE produk SET supplier_id=?, merek=?, kategori_id=?, ukuran=?, warna=?, bahan=?, kondisi=?, deskripsi=?, foto_produk=?, modal=?, harga_jual=?, qty=?, status=?, sumber_barang=?, keterangan_sumber=? WHERE id=?');
     $stmt->execute([
-        $supplier_id, $merek, $kategori_id, $ukuran, $warna, $bahan, $kondisi, $deskripsi, $fotoPath, $modal, $harga_jual, $status, $sumber_barang, $keterangan_sumber, $id
+        $supplier_id, $merek, $kategori_id, $ukuran, $warna, $bahan, $kondisi, $deskripsi, $fotoPath, $modal, $harga_jual, $qty, $status, $sumber_barang, $keterangan_sumber, $id
     ]);
 
     flash('success', 'Data produk berhasil diperbarui.');
@@ -204,9 +205,8 @@ $is_ukuran_lain = !in_array($produk['ukuran'], $ukuran_list);
                     <div class="col-md-3">
                         <label class="form-label fw-bold small text-muted">Status Produk</label>
                         <select name="status" class="form-select" required>
-                            <option value="di_rak" <?= $produk['status'] == 'di_rak' ? 'selected' : '' ?>>Di Rak (Tersedia)</option>
-                            <option value="terjual" <?= $produk['status'] == 'terjual' ? 'selected' : '' ?>>Terjual</option>
-                            <option value="rusak" <?= $produk['status'] == 'rusak' ? 'selected' : '' ?>>Rusak / Reject</option>
+                            <option value="aktif" <?= $produk['status'] == 'aktif' ? 'selected' : '' ?>>Aktif (Tampil)</option>
+                            <option value="nonaktif" <?= $produk['status'] == 'nonaktif' ? 'selected' : '' ?>>Nonaktif (Sembunyikan)</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -231,15 +231,19 @@ $is_ukuran_lain = !in_array($produk['ukuran'], $ukuran_list);
                 </div>
                 
                 <div class="row mb-4">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label fw-bold small text-muted">Keterangan Sumber Tambahan</label>
                         <textarea name="keterangan_sumber" class="form-control" rows="2"><?= htmlspecialchars($produk['keterangan_sumber'] ?? '') ?></textarea>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label fw-bold small text-muted">Modal per Item (Rp)</label>
                         <input type="number" name="modal" id="modal" class="form-control" step="0.01" value="<?= htmlspecialchars($produk['modal']) ?>" required>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Stok (Qty)</label>
+                        <input type="number" name="qty" id="qty" class="form-control" value="<?= htmlspecialchars($produk['qty']) ?>" required>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label fw-bold small text-muted">Harga Jual (Rp)</label>
                         <input type="number" name="harga_jual" id="harga_jual" class="form-control text-success fw-bold" step="0.01" value="<?= htmlspecialchars($produk['harga_jual']) ?>" required>
                         <div class="mt-2 p-2 bg-white border rounded text-center">

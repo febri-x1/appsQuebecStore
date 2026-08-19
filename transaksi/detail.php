@@ -4,7 +4,7 @@ require_once '../includes/auth_check.php';
 require_once '../includes/functions.php';
 
 $user = current_user();
-if ($user['role'] !== 'pemilik' && $user['role'] !== 'kasir') {
+if ($user['role'] !== 'kasir' && $user['role'] !== 'kasir') {
     flash('error', 'Akses ditolak.');
     redirect('dashboard.php');
 }
@@ -140,17 +140,21 @@ include '../includes/header.php';
             <div class="card shadow-sm border-success">
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-2">
-                        <span class="text-muted">Harga Jual</span>
-                        <strong><?= formatRupiah($t['harga_jual']) ?></strong>
+                        <span class="text-muted">Jumlah Beli</span>
+                        <strong><?= htmlspecialchars($t['qty']) ?> Pcs</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Harga Jual (Total)</span>
+                        <strong><?= formatRupiah($t['harga_jual'] * $t['qty']) ?></strong>
                     </div>
                     <div class="d-flex justify-content-between mb-3">
-                        <span class="text-muted">Modal Item</span>
-                        <strong><?= formatRupiah($t['modal']) ?></strong>
+                        <span class="text-muted">Modal Item (Total)</span>
+                        <strong><?= formatRupiah($t['modal'] * $t['qty']) ?></strong>
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between mb-2 fs-5">
-                        <span class="text-success fw-bold">Keuntungan</span>
-                        <strong class="text-success"><?= formatRupiah($t['keuntungan']) ?> <?= $t['keuntungan'] > 0 ? '?' : '?' ?></strong>
+                        <span class="text-success fw-bold">Keuntungan (Total)</span>
+                        <strong class="text-success"><?= formatRupiah($t['keuntungan'] * $t['qty']) ?> <?= $t['keuntungan'] > 0 ? '?' : '?' ?></strong>
                     </div>
                     <div class="d-flex justify-content-between">
                         <span class="text-muted">Margin</span>

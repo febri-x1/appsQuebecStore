@@ -11,15 +11,15 @@ if (current_user()['role'] === 'kasir') {
 $pageTitle = 'Dashboard Operasional';
 
 // Metrics Data
-$stokAktif = (int) $pdo->query("SELECT COUNT(*) FROM produk WHERE status = 'di_rak'")->fetchColumn();
+$stokAktif = (int) $pdo->query("SELECT COALESCE(SUM(qty), 0) FROM produk WHERE status = 'aktif'")->fetchColumn();
 $deadstock = (int) $pdo->query("SELECT COUNT(*) FROM v_deadstock")->fetchColumn();
 $transaksiHariIni = (int) $pdo->query("SELECT COUNT(*) FROM transaksi WHERE tanggal_jual = CURDATE()")->fetchColumn();
-$omzetHariIni = (float) $pdo->query("SELECT COALESCE(SUM(harga_jual), 0) FROM transaksi WHERE tanggal_jual = CURDATE()")->fetchColumn();
-$labaHariIni = (float) $pdo->query("SELECT COALESCE(SUM(harga_jual - modal), 0) FROM transaksi WHERE tanggal_jual = CURDATE()")->fetchColumn();
+$omzetHariIni = (float) $pdo->query("SELECT COALESCE(SUM(harga_jual * qty), 0) FROM transaksi WHERE tanggal_jual = CURDATE()")->fetchColumn();
+$labaHariIni = (float) $pdo->query("SELECT COALESCE(SUM(keuntungan * qty), 0) FROM transaksi WHERE tanggal_jual = CURDATE()")->fetchColumn();
 
 // Recent Transactions Data (Real-time feed)
 $stmtRecent = $pdo->query("
-    SELECT t.id, t.tanggal_jual, b.kode_item, b.merek, t.harga_jual, t.metode_bayar, k.nama as nama_kasir, t.created_at 
+    SELECT t.id, t.tanggal_jual, b.kode_item, b.merek, t.qty, t.harga_jual, t.metode_bayar, k.nama as nama_kasir, t.created_at 
     FROM transaksi t
     JOIN produk b ON t.produk_id = b.id
     LEFT JOIN users k ON t.kasir_id = k.id
@@ -127,6 +127,7 @@ include __DIR__ . '/includes/header.php';
 
     <div class="row g-4">
         <!-- Live Feed Transaksi -->
+        <?php if (current_user()['role'] !== 'admin'): ?>
         <div class="col-lg-8">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-white pt-3 pb-3 border-0 d-flex justify-content-between align-items-center">
@@ -162,7 +163,7 @@ include __DIR__ . '/includes/header.php';
                                                     <span class="badge bg-info-subtle text-info border border-info-subtle"><i class="bi bi-credit-card me-1"></i><?= strtoupper($tx['metode_bayar']) ?></span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="text-end pe-4 fw-bold text-primary"><?= formatRupiah($tx['harga_jual']) ?></td>
+                                            <td class="text-end pe-4 fw-bold text-primary"><?= formatRupiah($tx['harga_jual'] * $tx['qty']) ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
@@ -179,6 +180,7 @@ include __DIR__ . '/includes/header.php';
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- Quick Actions Panel -->
         <div class="col-lg-4">

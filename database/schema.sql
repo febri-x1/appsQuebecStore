@@ -101,8 +101,7 @@ CREATE TABLE `kategori_produk` (
 
 -- ============================================================
 -- TABEL 4: produk
--- Tabel inti sistem — setiap baris = 1 item fisik unik
--- (1 SKU = 1 produk, tidak ada duplikat stok)
+-- Tabel inti sistem — 1 SKU bisa memiliki Qty > 0
 -- ============================================================
 CREATE TABLE `produk` (
     `id`          INT(11)        UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -117,8 +116,8 @@ CREATE TABLE `produk` (
     `foto`        VARCHAR(255)   DEFAULT NULL COMMENT 'Path foto item di folder assets/uploads/',
     `modal`       DECIMAL(10,2)  NOT NULL DEFAULT 0.00 COMMENT 'Modal per item (Rp) dari harga bal',
     `harga_jual`  DECIMAL(10,2)  NOT NULL DEFAULT 0.00 COMMENT 'Harga jual yang ditetapkan (Rp)',
-    `status`      ENUM('di_rak','terjual','rusak') NOT NULL DEFAULT 'di_rak'
-                  COMMENT 'Status item: di_rak=tersedia, terjual=sudah laku, rusak=tidak dijual',
+    `qty`         INT(11)        NOT NULL DEFAULT 0 COMMENT 'Stok item',
+    `status`      ENUM('aktif','nonaktif') NOT NULL DEFAULT 'aktif' COMMENT 'Status item: aktif (ditampilkan) / nonaktif (disembunyikan)',
     `tanggal_masuk` DATE         NOT NULL COMMENT 'Tanggal produk masuk / didaftarkan ke sistem',
     `created_at`  TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`  TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -147,23 +146,23 @@ CREATE TABLE `produk` (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci
-  COMMENT='Item pakaian thrifting — 1 baris = 1 item fisik unik';
+  COMMENT='Item pakaian thrifting — mendukung sistem stok (Qty)';
 
 
 -- ============================================================
 -- TABEL 5: transaksi
 -- Mencatat setiap penjualan yang terjadi di toko
--- Keuntungan = harga_jual - modal (disimpan saat transaksi)
 -- ============================================================
 CREATE TABLE `transaksi` (
     `id`           INT(11)       UNSIGNED NOT NULL AUTO_INCREMENT,
     `produk_id`    INT(11)       UNSIGNED NOT NULL COMMENT 'FK ke tabel produk',
     `kasir_id`     INT(11)       UNSIGNED NOT NULL COMMENT 'FK ke tabel users (kasir yang melayani)',
-    `harga_jual`   DECIMAL(10,2) NOT NULL COMMENT 'Harga terjual saat transaksi (Rp)',
-    `modal`        DECIMAL(10,2) NOT NULL COMMENT 'Modal item saat transaksi (snapshot)',
+    `qty`          INT(11)       NOT NULL DEFAULT 1 COMMENT 'Jumlah pembelian',
+    `harga_jual`   DECIMAL(10,2) NOT NULL COMMENT 'Harga terjual satuan saat transaksi (Rp)',
+    `modal`        DECIMAL(10,2) NOT NULL COMMENT 'Modal item satuan saat transaksi (snapshot)',
     `keuntungan`   DECIMAL(10,2) GENERATED ALWAYS AS
                    (`harga_jual` - `modal`) STORED
-                   COMMENT 'Otomatis: harga_jual - modal (Rp)',
+                   COMMENT 'Otomatis: harga_jual - modal (Rp) satuan',
     `metode_bayar` ENUM('tunai','qris','transfer') NOT NULL DEFAULT 'tunai'
                    COMMENT 'Metode pembayaran yang digunakan',
     `catatan`      VARCHAR(255)  DEFAULT NULL COMMENT 'Catatan transaksi opsional',
@@ -191,12 +190,12 @@ CREATE TABLE `transaksi` (
 ) ENGINE=InnoDB
   DEFAULT CHARSET=utf8mb4
   COLLATE=utf8mb4_unicode_ci
-  COMMENT='Riwayat transaksi penjualan — keuntungan dihitung otomatis';
+  COMMENT='Riwayat transaksi penjualan — mendukung pembelian quantity > 1';
 
 
 -- ============================================================
 -- VIEW 1: v_stok_aktif
--- Produk yang masih tersedia di rak (belum terjual)
+-- Produk yang masih tersedia di rak (qty > 0 dan status aktif)
 -- ============================================================
 CREATE OR REPLACE VIEW `v_stok_aktif` AS
     SELECT
@@ -209,20 +208,20 @@ CREATE OR REPLACE VIEW `v_stok_aktif` AS
         b.kondisi,
         b.modal,
         b.harga_jual,
-        b.harga_jual - b.modal            AS potensi_keuntungan,
+        b.qty,
+        (b.harga_jual - b.modal) AS potensi_keuntungan,
         b.tanggal_masuk,
         DATEDIFF(CURDATE(), b.tanggal_masuk) AS hari_di_rak,
         s.nama_supplier
     FROM  `produk`    b
     JOIN  `suppliers` s ON s.id = b.supplier_id
     JOIN  `kategori_produk` kb ON kb.id = b.kategori_id
-    WHERE b.status = 'di_rak';
+    WHERE b.qty > 0 AND b.status = 'aktif';
 
 
 -- ============================================================
 -- VIEW 2: v_deadstock
--- Produk yang sudah > 30 hari di rak dan belum terjual
--- Digunakan untuk alert deadstock di dashboard
+-- Produk yang sudah > 30 hari di rak dan belum terjual habis
 -- ============================================================
 CREATE OR REPLACE VIEW `v_deadstock` AS
     SELECT *
@@ -234,7 +233,6 @@ CREATE OR REPLACE VIEW `v_deadstock` AS
 -- ============================================================
 -- VIEW 3: v_laporan_transaksi
 -- Gabungan data transaksi dengan detail produk dan kasir
--- Digunakan untuk halaman laporan dan dashboard
 -- ============================================================
 CREATE OR REPLACE VIEW `v_laporan_transaksi` AS
     SELECT
@@ -246,6 +244,7 @@ CREATE OR REPLACE VIEW `v_laporan_transaksi` AS
         kb.nama_kategori AS kategori,
         b.ukuran,
         b.kondisi,
+        t.qty,
         t.harga_jual,
         t.modal,
         t.keuntungan,
@@ -268,10 +267,10 @@ CREATE OR REPLACE VIEW `v_laporan_transaksi` AS
 CREATE OR REPLACE VIEW `v_ringkasan_harian` AS
     SELECT
         tanggal_jual,
-        COUNT(*)          AS jumlah_item_terjual,
-        SUM(harga_jual)   AS total_pendapatan,
-        SUM(modal)        AS total_modal,
-        SUM(keuntungan)   AS total_keuntungan
+        SUM(qty)          AS jumlah_item_terjual,
+        SUM(harga_jual * qty)   AS total_pendapatan,
+        SUM(modal * qty)        AS total_modal,
+        SUM(keuntungan * qty)   AS total_keuntungan
     FROM  `transaksi`
     GROUP BY tanggal_jual
     ORDER BY tanggal_jual DESC;
@@ -330,23 +329,25 @@ CREATE TABLE `diskon_promo` (
   COMMENT='Manajemen diskon dan promo toko';
 
 
-SET FOREIGN_KEY_CHECKS = 1;
+-- ============================================================
+-- TABEL 8: penerimaan_barang
+-- ============================================================
+CREATE TABLE `penerimaan_barang` (
+    `id_penerimaan` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `no_penerimaan` VARCHAR(50) NOT NULL,
+    `produk_id` INT(11) UNSIGNED NOT NULL,
+    `supplier_id` INT(11) UNSIGNED NOT NULL,
+    `qty` INT(11) NOT NULL,
+    `keterangan` TEXT DEFAULT NULL,
+    `admin_id` INT(11) UNSIGNED NOT NULL,
+    `tanggal_terima` DATE NOT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
--- ============================================================
--- Selesai. Tabel yang dibuat:
---   1. users        — akun pemilik & kasir
---   2. suppliers    — pemasok bal pakaian
---   3. produk       — item pakaian (1 baris = 1 fisik unik)
---   4. transaksi    — riwayat penjualan
---   5. pengeluaran  — operasional toko
---   6. diskon_promo — diskon dan promo
---
--- View yang dibuat:
---   1. v_stok_aktif          — produk masih di rak
---   2. v_deadstock           — produk > 30 hari belum terjual
---   3. v_laporan_transaksi   — laporan gabungan untuk pelaporan
---   4. v_ringkasan_harian    — ringkasan pendapatan per hari
---
--- Langkah selanjutnya:
---   Jalankan database/seeder.sql untuk mengisi data awal
--- ============================================================
+    PRIMARY KEY (`id_penerimaan`),
+    UNIQUE KEY `uq_no_penerimaan` (`no_penerimaan`),
+    CONSTRAINT `fk_penerimaan_produk` FOREIGN KEY (`produk_id`) REFERENCES `produk` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_penerimaan_supplier` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_penerimaan_admin` FOREIGN KEY (`admin_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;

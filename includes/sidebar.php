@@ -23,7 +23,7 @@
                 </a>
             <?php endif; ?>
 
-            <?php if (($user['role'] ?? '') !== 'kasir'): ?>
+            <?php if (($user['role'] ?? '') === 'admin'): ?>
                 <a href="<?= BASE_URL; ?>/produk/index.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/produk/') !== false ? 'active' : '' ?>">
                     <i class="bi bi-box-seam-fill"></i> <span>Produk</span>
                 </a>
@@ -36,11 +36,13 @@
                 <a href="<?= BASE_URL; ?>/penerimaan/index.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/penerimaan/') !== false ? 'active' : '' ?>">
                     <i class="bi bi-box-arrow-in-down"></i> <span>Penerimaan Barang</span>
                 </a>
+            <?php endif; ?>
+
+
+
+            <?php if (($user['role'] ?? '') === 'kasir'): ?>
                 <a href="<?= BASE_URL; ?>/transaksi/index.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/transaksi/') !== false && strpos($_SERVER['REQUEST_URI'], 'jual.php') === false ? 'active' : '' ?>">
                     <i class="bi bi-receipt"></i> <span>Transaksi</span>
-                </a>
-                <a href="<?= BASE_URL; ?>/pengeluaran/index.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/pengeluaran/') !== false ? 'active' : '' ?>">
-                    <i class="bi bi-wallet2"></i> <span>Pengeluaran</span>
                 </a>
             <?php endif; ?>
 
@@ -48,25 +50,24 @@
                 <a href="<?= BASE_URL; ?>/transaksi/jual.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], 'jual.php') !== false ? 'active' : '' ?>">
                     <i class="bi bi-cart-plus-fill"></i> <span>Kasir</span>
                 </a>
-                <a href="<?= BASE_URL; ?>/katalog_kasir.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], 'katalog') !== false ? 'active' : '' ?>">
-                    <i class="bi bi-bag-fill"></i> <span>Katalog Produk</span>
-                </a>
             <?php endif; ?>
 
             <hr class="my-2 border-secondary opacity-25">
             <div class="nav-label text-muted small fw-bold mb-2 text-uppercase" style="letter-spacing: 1px; font-size: 0.75rem;">Lainnya</div>
 
-            <a href="<?= BASE_URL; ?>/laporan/index.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/laporan/index.php') !== false ? 'active' : '' ?>">
-                <i class="bi bi-bar-chart-fill"></i> <span>Laporan Penjualan</span>
-            </a>
-            <a href="<?= BASE_URL; ?>/laporan/pendapatan.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/laporan/pendapatan.php') !== false ? 'active' : '' ?>">
-                <i class="bi bi-wallet2"></i> <span>Laporan Pendapatan</span>
-            </a>
-            <a href="<?= BASE_URL; ?>/laporan/stok.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/laporan/stok.php') !== false ? 'active' : '' ?>">
-                <i class="bi bi-box2-fill"></i> <span>Laporan Stok</span>
-            </a>
+            <?php if (($user['role'] ?? '') === 'pemilik' || ($user['role'] ?? '') === 'admin'): ?>
+                <a href="<?= BASE_URL; ?>/laporan/index.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/laporan/index.php') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-bar-chart-fill"></i> <span>Laporan Penjualan</span>
+                </a>
+                <a href="<?= BASE_URL; ?>/laporan/pendapatan.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/laporan/pendapatan.php') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-wallet2"></i> <span>Laporan Pendapatan</span>
+                </a>
+                <a href="<?= BASE_URL; ?>/laporan/stok.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/laporan/stok.php') !== false ? 'active' : '' ?>">
+                    <i class="bi bi-box2-fill"></i> <span>Laporan Stok</span>
+                </a>
+            <?php endif; ?>
 
-            <?php if (($user['role'] ?? '') === 'admin' || ($user['role'] ?? '') === 'pemilik'): ?>
+            <?php if (($user['role'] ?? '') === 'admin'): ?>
                 <a href="<?= BASE_URL; ?>/user/index.php" class="nav-link <?= strpos($_SERVER['REQUEST_URI'], '/user/') !== false ? 'active' : '' ?>">
                     <i class="bi bi-people-fill"></i> <span>Manajemen User</span>
                 </a>

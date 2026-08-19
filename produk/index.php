@@ -4,7 +4,7 @@ require_once '../includes/auth_check.php'; // hanya role 'pemilik'
 require_once '../includes/functions.php';
 
 // Pastikan hanya role pemilik yang bisa akses
-if (current_user()['role'] !== 'pemilik') {
+if (current_user()['role'] !== 'admin') {
     flash('error', 'Akses ditolak. Halaman ini hanya untuk pemilik.');
     redirect('dashboard.php');
 }
@@ -113,9 +113,8 @@ include '../includes/header.php';
                     <label class="form-label small text-muted fw-bold">Status</label>
                     <select name="status" class="form-select form-select-sm">
                         <option value="">Semua</option>
-                        <option value="di_rak" <?= $status_filter == 'di_rak' ? 'selected' : '' ?>>Di Rak</option>
-                        <option value="terjual" <?= $status_filter == 'terjual' ? 'selected' : '' ?>>Terjual</option>
-                        <option value="rusak" <?= $status_filter == 'rusak' ? 'selected' : '' ?>>Rusak</option>
+                        <option value="aktif" <?= $status_filter == 'aktif' ? 'selected' : '' ?>>Aktif</option>
+                        <option value="nonaktif" <?= $status_filter == 'nonaktif' ? 'selected' : '' ?>>Nonaktif</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -198,6 +197,7 @@ include '../includes/header.php';
                             <th>Kategori</th>
                             <th>Ukuran</th>
                             <th class="text-center">Kondisi</th>
+                            <th class="text-center">Qty</th>
                             <th class="text-end">Modal</th>
                             <th class="text-end">Harga Jual</th>
                             <th>Status</th>
@@ -209,7 +209,7 @@ include '../includes/header.php';
                             <?php $no = $offset + 1;
                             foreach ($produkList as $b):
                                 $hari_di_rak = (strtotime(date('Y-m-d')) - strtotime($b['tanggal_masuk'])) / (60 * 60 * 24);
-                                $is_deadstock = ($b['status'] == 'di_rak' && $hari_di_rak > 30);
+                                $is_deadstock = ($b['qty'] > 0 && $hari_di_rak > 30 && $b['status'] == 'aktif');
                             ?>
                                 <tr class="<?= $is_deadstock ? 'table-warning' : '' ?>">
                                     <td class="text-center text-muted"><?= $no++ ?></td>
@@ -235,15 +235,14 @@ include '../includes/header.php';
                                             <span class="badge bg-danger" data-bs-toggle="tooltip" title="Cukup (Ada Cacat)">C</span>
                                         <?php endif; ?>
                                     </td>
+                                    <td class="text-center fw-bold <?= $b['qty'] > 0 ? 'text-primary' : 'text-danger' ?>"><?= $b['qty'] ?></td>
                                     <td class="text-end text-muted"><?= formatRupiah($b['modal']) ?></td>
                                     <td class="text-end fw-bold text-success"><?= formatRupiah($b['harga_jual']) ?></td>
                                     <td>
-                                        <?php if ($b['status'] == 'di_rak'): ?>
-                                            <span class="badge bg-primary">Di Rak</span>
-                                        <?php elseif ($b['status'] == 'terjual'): ?>
-                                            <span class="badge bg-secondary">Terjual</span>
+                                        <?php if ($b['status'] == 'aktif'): ?>
+                                            <span class="badge bg-success">Aktif</span>
                                         <?php else: ?>
-                                            <span class="badge bg-danger">Rusak</span>
+                                            <span class="badge bg-secondary">Nonaktif</span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-center">
@@ -251,11 +250,7 @@ include '../includes/header.php';
                                             <a href="cetak_label.php?id=<?= $b['id'] ?>" target="_blank" class="btn btn-dark" title="Cetak Label"><i class="bi bi-upc-scan"></i></a>
                                             <a href="detail.php?id=<?= $b['id'] ?>" class="btn btn-outline-info" title="Detail"><i class="bi bi-eye"></i></a>
                                             <a href="edit.php?id=<?= $b['id'] ?>" class="btn btn-outline-warning text-dark" title="Edit"><i class="bi bi-pencil"></i></a>
-                                            <?php if ($b['status'] == 'terjual'): ?>
-                                                <button class="btn btn-outline-danger" disabled title="Tidak bisa dihapus (Terjual)"><i class="bi bi-trash"></i></button>
-                                            <?php else: ?>
-                                                <button class="btn btn-outline-danger" onclick="confirmDelete(<?= $b['id'] ?>)" title="Hapus"><i class="bi bi-trash"></i></button>
-                                            <?php endif; ?>
+                                            <button class="btn btn-outline-danger" onclick="confirmDelete(<?= $b['id'] ?>)" title="Hapus"><i class="bi bi-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>

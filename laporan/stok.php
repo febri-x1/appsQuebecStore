@@ -11,26 +11,26 @@ if (!in_array($user['role'] ?? '', ['admin', 'pemilik'])) {
 
 $pageTitle = 'Laporan Stok Barang';
 
-// 1. Dapatkan ringkasan total stok saat ini (status = di_rak)
+// 1. Dapatkan ringkasan total stok saat ini
 $summary = safeExecute($pdo, "
     SELECT 
-        COUNT(id) as total_item,
-        SUM(modal) as total_modal,
-        SUM(harga_jual) as total_potensi_pendapatan
+        COALESCE(SUM(qty), 0) as total_item,
+        COALESCE(SUM(modal * qty), 0) as total_modal,
+        COALESCE(SUM(harga_jual * qty), 0) as total_potensi_pendapatan
     FROM produk 
-    WHERE status = 'di_rak'
+    WHERE status = 'aktif' AND qty > 0
 ", [])->fetch();
 
 // 2. Breakdown per Kategori
 $stokKategori = safeExecute($pdo, "
     SELECT 
         COALESCE(kb.nama_kategori, 'Tanpa Kategori') as kategori,
-        COUNT(p.id) as jumlah,
-        SUM(p.modal) as modal,
-        SUM(p.harga_jual) as potensi
+        COALESCE(SUM(p.qty), 0) as jumlah,
+        COALESCE(SUM(p.modal * p.qty), 0) as modal,
+        COALESCE(SUM(p.harga_jual * p.qty), 0) as potensi
     FROM produk p
     LEFT JOIN kategori_produk kb ON kb.id = p.kategori_id
-    WHERE p.status = 'di_rak'
+    WHERE p.status = 'aktif' AND p.qty > 0
     GROUP BY p.kategori_id
     ORDER BY jumlah DESC
 ", [])->fetchAll();
@@ -39,17 +39,17 @@ $stokKategori = safeExecute($pdo, "
 $stokKondisi = safeExecute($pdo, "
     SELECT 
         kondisi,
-        COUNT(id) as jumlah
+        COALESCE(SUM(qty), 0) as jumlah
     FROM produk 
-    WHERE status = 'di_rak'
+    WHERE status = 'aktif' AND qty > 0
     GROUP BY kondisi
     ORDER BY kondisi ASC
 ", [])->fetchAll();
 
 // 4. Detail Stok (dengan filter pencarian opsional)
 $search = trim($_GET['q'] ?? '');
-$params = ['di_rak'];
-$whereClause = "WHERE p.status = ?";
+$params = ['aktif'];
+$whereClause = "WHERE p.status = ? AND p.qty > 0";
 
 if ($search !== '') {
     $whereClause .= " AND (p.kode_item LIKE ? OR p.merek LIKE ? OR kb.nama_kategori LIKE ?)";
@@ -59,7 +59,7 @@ if ($search !== '') {
 
 $detailStok = safeExecute($pdo, "
     SELECT 
-        p.kode_item, p.merek, kb.nama_kategori, p.ukuran, p.kondisi, p.modal, p.harga_jual, p.tanggal_masuk,
+        p.kode_item, p.merek, kb.nama_kategori, p.ukuran, p.kondisi, p.qty, p.modal, p.harga_jual, p.tanggal_masuk,
         s.nama_supplier
     FROM produk p
     LEFT JOIN kategori_produk kb ON kb.id = p.kategori_id
@@ -216,6 +216,7 @@ include '../includes/header.php';
                             <th>Kategori</th>
                             <th class="text-center">Ukuran</th>
                             <th class="text-center">Kondisi</th>
+                            <th class="text-center">Qty</th>
                             <th>Supplier</th>
                             <th class="text-end">Modal</th>
                             <th class="text-end pe-3">Harga Jual</th>
@@ -234,6 +235,7 @@ include '../includes/header.php';
                                     <?= htmlspecialchars($d['kondisi']) ?>
                                 </span>
                             </td>
+                            <td class="text-center fw-bold text-primary"><?= htmlspecialchars($d['qty']) ?></td>
                             <td class="text-muted"><small><?= htmlspecialchars($d['nama_supplier'] ?? '-') ?></small></td>
                             <td class="text-end text-muted"><?= formatRupiah($d['modal']) ?></td>
                             <td class="text-end pe-3 fw-bold text-success"><?= formatRupiah($d['harga_jual']) ?></td>

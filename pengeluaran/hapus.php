@@ -3,7 +3,7 @@ require_once '../config/database.php';
 require_once '../includes/auth_check.php';
 
 $user = current_user();
-if (($user['role'] ?? '') === 'kasir') {
+if (current_user()['role'] !== 'pemilik') {
     redirect(BASE_URL . '/dashboard_kasir.php');
 }
 

@@ -3,7 +3,7 @@ require_once '../config/database.php';
 require_once '../includes/auth_check.php';
 require_once '../includes/functions.php';
 
-if (current_user()['role'] !== 'pemilik') {
+if (current_user()['role'] !== 'kasir') {
     flash('error', 'Akses ditolak.');
     redirect('dashboard.php');
 }
@@ -21,7 +21,7 @@ if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'] ?? '')) {
 $id = (int)($_POST['id'] ?? 0);
 
 // Validasi transaksi ada dan dibuat hari ini
-$stmt = $pdo->prepare("SELECT produk_id, created_at FROM transaksi WHERE id = ?");
+$stmt = $pdo->prepare("SELECT produk_id, qty, created_at FROM transaksi WHERE id = ?");
 $stmt->execute([$id]);
 $t = $stmt->fetch();
 
@@ -39,16 +39,16 @@ if (!$isToday) {
 try {
     $pdo->beginTransaction();
 
-    // 1. Kembalikan status produk
-    $stmtProduk = $pdo->prepare("UPDATE produk SET status = 'di_rak' WHERE id = ?");
-    $stmtProduk->execute([$t['produk_id']]);
+    // 1. Kembalikan qty produk
+    $stmtProduk = $pdo->prepare("UPDATE produk SET qty = qty + ? WHERE id = ?");
+    $stmtProduk->execute([$t['qty'], $t['produk_id']]);
 
     // 2. Hapus transaksi
     $stmtDel = $pdo->prepare("DELETE FROM transaksi WHERE id = ?");
     $stmtDel->execute([$id]);
 
     $pdo->commit();
-    flash('success', 'Transaksi berhasil dihapus dan status produk dikembalikan menjadi Di Rak.');
+    flash('success', 'Transaksi berhasil dihapus dan stok produk berhasil dikembalikan.');
 } catch (Exception $e) {
     $pdo->rollBack();
     flash('error', 'Gagal menghapus transaksi: ' . $e->getMessage());

@@ -14,9 +14,9 @@ $nama_kasir = $user['nama'];
 // 1. Query Hari Ini (kasir login)
 $stmtToday = $pdo->prepare("
     SELECT 
-      COUNT(*)          AS jumlah_hari_ini,
-      SUM(harga_jual)   AS pendapatan_hari_ini,
-      SUM(keuntungan)   AS keuntungan_hari_ini
+      COALESCE(SUM(qty), 0) AS jumlah_hari_ini,
+      COALESCE(SUM(harga_jual * qty), 0) AS pendapatan_hari_ini,
+      COALESCE(SUM(keuntungan * qty), 0) AS keuntungan_hari_ini
     FROM transaksi
     WHERE kasir_id = :kasir_id
       AND tanggal_jual = CURDATE()
@@ -31,8 +31,8 @@ $keuntungan_hari_ini = (float)($today['keuntungan_hari_ini'] ?? 0);
 // 2. Query Kemarin (untuk perbandingan)
 $stmtYesterday = $pdo->prepare("
     SELECT 
-      COUNT(*)          AS jumlah_kemarin,
-      SUM(harga_jual)   AS pendapatan_kemarin
+      COALESCE(SUM(qty), 0) AS jumlah_kemarin,
+      COALESCE(SUM(harga_jual * qty), 0) AS pendapatan_kemarin
     FROM transaksi
     WHERE kasir_id = :kasir_id
       AND tanggal_jual = CURDATE() - INTERVAL 1 DAY
@@ -46,7 +46,7 @@ $pendapatan_kemarin = (float)($yesterday['pendapatan_kemarin'] ?? 0);
 // 3. Query Riwayat Transaksi Terbaru Hari Ini
 $stmtHistory = $pdo->prepare("
     SELECT t.id, t.created_at, b.kode_item, b.merek,
-           b.ukuran, b.kondisi, t.harga_jual,
+           b.ukuran, b.kondisi, t.qty, t.harga_jual,
            t.keuntungan, t.metode_bayar
     FROM transaksi t
     JOIN produk b ON b.id = t.produk_id
@@ -313,7 +313,8 @@ include 'includes/header.php';
                                 <th>Merek</th>
                                 <th>Uk</th>
                                 <th>Kondisi</th>
-                                <th>Harga Jual</th>
+                                <th>Qty</th>
+                                <th>Harga Jual (Total)</th>
                                 <th>Metode Bayar</th>
                             </tr>
                         </thead>
@@ -346,7 +347,8 @@ include 'includes/header.php';
                                             <span class="badge bg-danger">C</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="fw-bold text-success"><?= formatRupiah($r['harga_jual']) ?></td>
+                                    <td class="text-center fw-bold text-primary"><?= htmlspecialchars($r['qty']) ?></td>
+                                    <td class="fw-bold text-success"><?= formatRupiah($r['harga_jual'] * $r['qty']) ?></td>
                                     <td>
                                         <?php if($r['metode_bayar'] == 'tunai'): ?>
                                             <span class="badge bg-success">Tunai</span>

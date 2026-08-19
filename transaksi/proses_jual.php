@@ -26,13 +26,14 @@ if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csr
 }
 
 $produk_id = (int)($_POST['produk_id'] ?? 0);
+$qty_diminta = (int)($_POST['qty'] ?? 1);
 $harga_jual_input = (float)($_POST['harga_jual'] ?? 0);
 $metode_bayar = $_POST['metode_bayar'] ?? '';
 $catatan = trim($_POST['catatan'] ?? '');
 $kasir_id = current_user()['id'];
 $nama_kasir = current_user()['nama'];
 
-if (!$produk_id || $harga_jual_input <= 0 || !in_array($metode_bayar, ['tunai', 'qris', 'transfer'])) {
+if (!$produk_id || $qty_diminta <= 0 || $harga_jual_input <= 0 || !in_array($metode_bayar, ['tunai', 'qris', 'transfer'])) {
     http_response_code(400);
     echo json_encode(['status' => 'error', 'message' => 'Data input tidak lengkap atau tidak valid.']);
     exit;
@@ -43,7 +44,7 @@ try {
     $pdo->beginTransaction();
 
     // 3. Ambil data produk dan LOCK baris ini (FOR UPDATE)
-    $stmtProduk = $pdo->prepare("SELECT id, kode_item, merek, modal, status FROM produk WHERE id = ? FOR UPDATE");
+    $stmtProduk = $pdo->prepare("SELECT id, kode_item, merek, modal, status, qty FROM produk WHERE id = ? FOR UPDATE");
     $stmtProduk->execute([$produk_id]);
     $b = $stmtProduk->fetch(PDO::FETCH_ASSOC);
 
@@ -51,30 +52,28 @@ try {
         throw new Exception("Produk tidak ditemukan dalam database.");
     }
 
-    // 4. Validasi status produk
-    if ($b['status'] !== 'di_rak') {
-        throw new Exception("Produk ini sudah tidak tersedia (status: {$b['status']}).");
+    // 4. Validasi stok produk
+    if ($b['status'] !== 'aktif') {
+        throw new Exception("Produk ini sedang tidak aktif.");
+    }
+    if ($b['qty'] < $qty_diminta) {
+        throw new Exception("Stok tidak mencukupi. Sisa stok: {$b['qty']}, diminta: {$qty_diminta}.");
     }
 
     $modal = (float)$b['modal'];
-    $keuntungan = $harga_jual_input - $modal;
+    $keuntungan_satuan = $harga_jual_input - $modal;
 
     // 5. Insert ke tabel transaksi
     $stmtTrx = $pdo->prepare("
-        INSERT INTO transaksi (produk_id, kasir_id, harga_jual, modal, metode_bayar, catatan, tanggal_jual)
-        VALUES (?, ?, ?, ?, ?, ?, CURDATE())
+        INSERT INTO transaksi (produk_id, kasir_id, qty, harga_jual, modal, metode_bayar, catatan, tanggal_jual)
+        VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())
     ");
-    $stmtTrx->execute([$produk_id, $kasir_id, $harga_jual_input, $modal, $metode_bayar, $catatan]);
+    $stmtTrx->execute([$produk_id, $kasir_id, $qty_diminta, $harga_jual_input, $modal, $metode_bayar, $catatan]);
     $transaksi_id = $pdo->lastInsertId();
 
-    // 6. Update status produk menjadi terjual
-    $stmtUpdate = $pdo->prepare("UPDATE produk SET status = 'terjual', updated_at = NOW() WHERE id = ? AND status = 'di_rak'");
-    $stmtUpdate->execute([$produk_id]);
-
-    // Jika karena alasan tertentu row tidak terupdate (meski sudah dilock)
-    if ($stmtUpdate->rowCount() === 0) {
-        throw new Exception("Gagal mengamankan stok produk. Kemungkinan ada transaksi ganda.");
-    }
+    // 6. Update stok produk
+    $stmtUpdate = $pdo->prepare("UPDATE produk SET qty = qty - ?, updated_at = NOW() WHERE id = ?");
+    $stmtUpdate->execute([$qty_diminta, $produk_id]);
 
     // Commit transaksi
     $pdo->commit();
@@ -86,9 +85,10 @@ try {
             'transaksi_id' => $transaksi_id,
             'merek' => $b['merek'],
             'kode_item' => $b['kode_item'],
+            'qty' => $qty_diminta,
             'harga_jual' => $harga_jual_input,
             'modal' => $modal,
-            'keuntungan' => $keuntungan,
+            'keuntungan' => $keuntungan_satuan,
             'metode_bayar' => $metode_bayar,
             'kasir' => $nama_kasir
         ]

@@ -18,12 +18,12 @@ $supplierList = safeExecute($pdo, "
     ORDER BY nama_supplier ASC
 ", [])->fetchAll();
 
-// Ambil semua produk (status di_rak) beserta supplier_id
+// Ambil semua produk (status aktif) beserta supplier_id
 $produkAll = safeExecute($pdo, "
     SELECT p.id, p.kode_item, p.merek, p.ukuran, p.kondisi, p.supplier_id, kb.nama_kategori
     FROM produk p
     JOIN kategori_produk kb ON kb.id = p.kategori_id
-    WHERE p.status = 'di_rak'
+    WHERE p.status = 'aktif'
     ORDER BY p.merek ASC, p.kode_item ASC
 ", [])->fetchAll();
 
@@ -52,15 +52,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($errors)) {
         try {
+            $pdo->beginTransaction();
+            
             $no_penerimaan = generateNoPenerimaan($pdo);
             safeExecute($pdo, "
                 INSERT INTO penerimaan_barang (no_penerimaan, produk_id, supplier_id, qty, keterangan, admin_id, tanggal_terima)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ", [$no_penerimaan, $produk_id, $supplier_id, $qty, $keterangan ?: null, $admin_id, $tanggal_terima]);
 
+            safeExecute($pdo, "UPDATE produk SET qty = qty + ? WHERE id = ?", [$qty, $produk_id]);
+
+            $pdo->commit();
+
             flash('success', "Penerimaan barang <strong>{$no_penerimaan}</strong> berhasil dicatat.");
             redirect('penerimaan/index.php');
         } catch (PDOException $e) {
+            $pdo->rollBack();
             $errors[] = 'Gagal menyimpan data: ' . $e->getMessage();
         }
     }
@@ -312,7 +319,7 @@ document.getElementById('supplier_id').addEventListener('change', function () {
     if (produkList.length === 0) {
         selProduk.innerHTML = '<option value="">Tidak ada produk dari supplier ini</option>';
         selProduk.disabled = true;
-        hint.textContent = 'Tidak ada produk aktif (di rak) dari supplier ini.';
+        hint.textContent = 'Tidak ada produk aktif dari supplier ini.';
     } else {
         selProduk.innerHTML = '<option value="">-- Pilih Produk --</option>';
         produkList.forEach(p => {

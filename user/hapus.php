@@ -3,7 +3,7 @@ require_once __DIR__ . '/../includes/auth_check.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/functions.php';
 
-if ((current_user()['role'] ?? '') !== 'pemilik') {
+if ((current_user()['role'] ?? '') !== 'admin') {
     flash('error', 'Akses hanya untuk pemilik.');
     redirect('dashboard.php');
 }
@@ -14,7 +14,15 @@ if ($id === current_user()['id']) {
     redirect('user/index.php');
 }
 
-$stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
-$stmt->execute([$id]);
-flash('success', 'User berhasil dihapus.');
+try {
+    $stmt = $pdo->prepare('DELETE FROM users WHERE id = ?');
+    $stmt->execute([$id]);
+    flash('success', 'User berhasil dihapus.');
+} catch (PDOException $e) {
+    if ($e->getCode() == '23000') {
+        flash('error', 'User tidak dapat dihapus karena memiliki data terkait (seperti riwayat transaksi atau pengeluaran).');
+    } else {
+        flash('error', 'Gagal menghapus user: ' . $e->getMessage());
+    }
+}
 redirect('user/index.php');

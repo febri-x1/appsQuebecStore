@@ -146,7 +146,7 @@ if (!$trx) {
         <table class="tabel-struk" style="margin-top: 2px;">
             <tr>
                 <td><?= htmlspecialchars($trx['kode_item']) ?></td>
-                <td class="text-right"><?= number_format($trx['harga_jual'], 0, ',', '.') ?></td>
+                <td class="text-right"><?= $trx['qty'] ?>x @<?= number_format($trx['harga_jual'], 0, ',', '.') ?></td>
             </tr>
         </table>
     </div>
@@ -154,7 +154,7 @@ if (!$trx) {
     <table class="tabel-struk mt-1 mb-1">
         <tr>
             <td class="bold">TOTAL</td>
-            <td class="bold text-right">Rp <?= number_format($trx['harga_jual'], 0, ',', '.') ?></td>
+            <td class="bold text-right">Rp <?= number_format($trx['harga_jual'] * $trx['qty'], 0, ',', '.') ?></td>
         </tr>
         <tr>
             <td>Metode Bayar</td>

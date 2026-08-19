@@ -3,7 +3,7 @@ require_once '../config/database.php';
 require_once '../includes/auth_check.php';
 require_once '../includes/functions.php';
 
-if (current_user()['role'] !== 'pemilik') {
+if (current_user()['role'] !== 'admin') {
     flash('error', 'Akses ditolak.');
     redirect('dashboard.php');
 }
@@ -55,7 +55,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    $stmt = $pdo->prepare('INSERT INTO produk (kode_item, supplier_id, merek, kategori_id, ukuran, warna, bahan, kondisi, deskripsi, foto_produk, modal, harga_jual, status, tanggal_masuk, sumber_barang, keterangan_sumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "di_rak", ?, ?, ?)');
+    $qty = (int)$_POST['qty'];
+
+    $stmt = $pdo->prepare('INSERT INTO produk (kode_item, supplier_id, merek, kategori_id, ukuran, warna, bahan, kondisi, deskripsi, foto_produk, modal, harga_jual, status, qty, tanggal_masuk, sumber_barang, keterangan_sumber) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "aktif", ?, ?, ?, ?)');
     $stmt->execute([
         $kode_item,
         $supplier_id,
@@ -69,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fotoPath,
         $modal,
         $harga_jual,
+        $qty,
         $tanggal_masuk,
         $sumber_barang,
         $keterangan_sumber
@@ -200,15 +203,19 @@ include '../includes/header.php';
                 </div>
                 
                 <div class="row mb-4">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label fw-bold small text-muted">Keterangan Sumber Tambahan</label>
                         <textarea name="keterangan_sumber" class="form-control" rows="2" placeholder="Informasi tambahan pengiriman/kurir..."></textarea>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label fw-bold small text-muted">Modal per Item (Rp)</label>
                         <input type="number" name="modal" id="modal" class="form-control" step="0.01" required>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Stok Awal (Qty)</label>
+                        <input type="number" name="qty" id="qty" class="form-control" value="0" min="0" required>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label fw-bold small text-muted">Harga Jual (Rp)</label>
                         <input type="number" name="harga_jual" id="harga_jual" class="form-control text-success fw-bold" step="0.01" required>
                         <div class="mt-2 p-2 bg-white border rounded text-center">
